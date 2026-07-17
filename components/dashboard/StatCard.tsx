@@ -1,0 +1,1 @@
+export function StatCard({label,value,change}:{label:string;value:string;change:string}){return <article className="panel stat-card"><span className="muted">{label}</span><strong>{value}</strong><span className="trend">{change} vs last month</span></article>}

@@ -1,0 +1,1 @@
+export function OrderStatusBadge({status}:{status:string}){const cls=status==="DELIVERED"||status==="PAID"?"success":status==="CANCELLED"||status==="REFUNDED"?"danger":status==="PENDING"?"warning":"";return <span className={`badge ${cls}`}>{status.replaceAll("_"," ")}</span>}

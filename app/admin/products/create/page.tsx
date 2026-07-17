@@ -1,0 +1,1 @@
+import Link from "next/link";import{ProductForm}from "@/components/products/ProductForm";export default function CreateProductPage(){return <><div className="page-head"><div><Link href="/admin/products" className="muted">← Products</Link><h1>Create product</h1></div></div><ProductForm/></>}

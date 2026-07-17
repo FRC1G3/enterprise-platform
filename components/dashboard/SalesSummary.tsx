@@ -1,0 +1,1 @@
+const sales=[["Mon",42],["Tue",63],["Wed",48],["Thu",84],["Fri",72],["Sat",96],["Sun",76]];export function SalesSummary(){return <div className="bar-chart" aria-label="Weekly sales bar chart">{sales.map(([d,n])=><div className="bar" style={{height:`${n}%`}} key={d}><span>{d}</span></div>)}</div>}

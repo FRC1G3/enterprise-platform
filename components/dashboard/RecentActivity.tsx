@@ -1,0 +1,1 @@
+import{activityLogs}from "@/lib/mock-data";export function RecentActivity(){return <div>{activityLogs.slice(0,4).map(a=><div className="activity-item" key={a.id}><span className="activity-dot"/><div><strong style={{fontSize:13}}>{a.description}</strong><div className="muted" style={{fontSize:12}}>{a.user} · {a.date}</div></div></div>)}</div>}
