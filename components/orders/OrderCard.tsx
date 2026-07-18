@@ -1,5 +1,4 @@
-export function OrderCard() {
-  // TODO: Add props, styling, and component behavior.
+﻿export function OrderCard() {
   return <div>order card</div>;
 }
 

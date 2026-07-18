@@ -1,2 +1,60 @@
-"use client";import{useState}from "react";import{AdminSidebar}from "@/components/layout/AdminSidebar";
-export default function AdminLayout({children}:{children:React.ReactNode}){const[open,setOpen]=useState(false);return <div className="admin-shell"><AdminSidebar open={open} onNavigate={()=>setOpen(false)}/><div className="admin-main"><header className="admin-header"><div className="row"><button className="icon-btn admin-mobile-toggle" type="button" aria-label="Toggle admin navigation" onClick={()=>setOpen(!open)}>☰</button><input className="input admin-search" aria-label="Search admin" placeholder="Search admin..."/></div><div className="row"><button className="icon-btn" type="button" aria-label="Notifications">♢<span className="cart-count">3</span></button><div className="avatar" style={{width:38,height:38,margin:0,fontSize:13}}>AA</div><div><strong style={{fontSize:13}}>Ava Admin</strong><div className="muted" style={{fontSize:11}}>Administrator</div></div></div></header><main className="admin-content">{children}</main></div></div>}
+﻿"use client";
+
+import { useState } from "react";
+import { AdminSidebar } from "@/components/layout/AdminSidebar";
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-[#f4f6f8]">
+      <AdminSidebar open={open} onNavigate={() => setOpen(false)} />
+      <div className="admin-main">
+        <header className="admin-header">
+          <div className="flex items-center gap-3">
+            <button
+              className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white md:hidden"
+              type="button"
+              aria-label="Toggle admin navigation"
+              onClick={() => setOpen(!open)}
+            >
+              ☰
+            </button>
+            <input
+              className="hidden w-[260px] rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 md:block"
+              aria-label="Search admin"
+              placeholder="Search admin..."
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
+              type="button"
+              aria-label="Notifications"
+            >
+              ♢
+              <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-indigo-600 px-1 text-[0.65rem] text-white">
+                3
+              </span>
+            </button>
+            <div
+              className="grid h-[38px] w-[38px] place-items-center rounded-full bg-indigo-100 text-[13px] font-black text-indigo-800"
+            >
+              AA
+            </div>
+            <div>
+              <strong className="text-[13px]">Ava Admin</strong>
+              <div className="text-[11px] leading-7 text-slate-500">
+                Administrator
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="admin-content">{children}</main>
+      </div>
+    </div>
+  );
+}
+

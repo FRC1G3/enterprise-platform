@@ -1,5 +1,4 @@
-export function useOrders() {
-  // TODO: Implement with SWR after the dependency is introduced.
+﻿export function useOrders() {
   return { data: null, isLoading: false, error: null };
 }
 

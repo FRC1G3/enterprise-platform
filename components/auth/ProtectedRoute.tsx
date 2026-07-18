@@ -1,5 +1,4 @@
-export function ProtectedRoute() {
-  // TODO: Add props, styling, and component behavior.
+﻿export function ProtectedRoute() {
   return <div>protected route</div>;
 }
 

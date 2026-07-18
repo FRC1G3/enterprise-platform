@@ -1,4 +1,4 @@
-generator client {
+﻿generator client {
   provider = "prisma-client-js"
 }
 
@@ -7,5 +7,4 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// TODO: Add User, Product, Cart, Order, Inventory and ActivityLog models.
 

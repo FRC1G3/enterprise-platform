@@ -1,5 +1,4 @@
-export function useAuth() {
-  // TODO: Implement with SWR after the dependency is introduced.
+﻿export function useAuth() {
   return { data: null, isLoading: false, error: null };
 }
 

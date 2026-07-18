@@ -1,31 +1,187 @@
 "use client";
+
 import Link from "next/link";
-import { usePathname,useRouter } from "next/navigation";
-import { FormEvent,useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 
-const navigation=[["Home","/"],["Products","/products"],["Men","/products?category=Men"],["Women","/products?category=Women"],["Shoes","/products?category=Shoes"],["Accessories","/products?category=Accessories"]];
+const navigation = [
+  ["Home", "/"],
+  ["Products", "/products"],
+  ["Men", "/products?category=Men"],
+  ["Women", "/products?category=Women"],
+  ["Shoes", "/products?category=Shoes"],
+  ["Accessories", "/products?category=Accessories"],
+];
 
-function Icon({name}:{name:"search"|"user"|"cart"|"menu"}) {
-  const icons={
-    search:<><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
-    user:<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
-    cart:<><path d="M3 4h2l2 11h11l2-7H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></>,
-    menu:<><path d="M4 7h16M4 12h16M4 17h16"/></>,
+function Icon({ name }: { name: "search" | "user" | "cart" | "menu" }) {
+  const icons = {
+    search: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </>
+    ),
+    user: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21a8 8 0 0 1 16 0" />
+      </>
+    ),
+    cart: (
+      <>
+        <path d="M3 4h2l2 11h11l2-7H6" />
+        <circle cx="9" cy="20" r="1" />
+        <circle cx="18" cy="20" r="1" />
+      </>
+    ),
+    menu: (
+      <>
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </>
+    ),
   };
-  return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>{icons[name]}</svg>;
+
+  return (
+    <svg
+      width="21"
+      height="21"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden
+    >
+      {icons[name]}
+    </svg>
+  );
 }
 
 export function Header() {
-  const pathname=usePathname();
-  const router=useRouter();
-  const [menuOpen,setMenuOpen]=useState(false);
-  const [search,setSearch]=useState("");
+  const pathname = usePathname();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
-  function submitSearch(event:FormEvent) {
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     router.push(`/products?search=${encodeURIComponent(search)}`);
     setMenuOpen(false);
   }
 
-  return <header className="site-header storefront-header"><div className="container header-row"><Link className="logo" href="/"><span className="logo-mark">NOVA</span> STORE</Link><nav className="nav" aria-label="Main navigation">{navigation.map(([label,href])=><Link key={label} href={href} className={pathname===href||(label==="Products"&&pathname.startsWith("/products"))?"active":""}>{label}</Link>)}</nav><div className="header-actions"><form className="header-search" onSubmit={submitSearch}><Icon name="search"/><label className="sr-only" htmlFor="site-search">Search</label><input id="site-search" className="input" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search products"/></form><Link className="admin-link" href="/admin">Admin</Link><Link className="icon-btn" href="/profile" aria-label="Profile"><Icon name="user"/></Link><Link className="icon-btn cart-mobile" href="/cart" aria-label="Cart"><Icon name="cart"/><span className="cart-count">2</span></Link><button className="icon-btn mobile-toggle" aria-label="Toggle menu" aria-expanded={menuOpen} onClick={()=>setMenuOpen(!menuOpen)}><Icon name="menu"/></button></div></div>{menuOpen&&<nav className="mobile-menu" aria-label="Mobile navigation">{navigation.map(([label,href])=><Link key={label} href={href} onClick={()=>setMenuOpen(false)}>{label}</Link>)}<Link href="/login" onClick={()=>setMenuOpen(false)}>Login</Link><Link href="/profile" onClick={()=>setMenuOpen(false)}>Profile</Link><Link href="/admin" onClick={()=>setMenuOpen(false)}>Admin Dashboard</Link><form onSubmit={submitSearch} className="row" style={{paddingTop:12}}><input className="input" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search products" aria-label="Search products"/><button className="btn btn-primary" type="submit">Search</button></form></nav>}</header>;
+  return (
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-[72px] w-full max-w-[1180px] items-center gap-[30px] px-4">
+        <Link className="whitespace-nowrap text-[1.35rem] font-black" href="/">
+          <span className="text-indigo-600">NOVA</span> STORE
+        </Link>
+
+        <nav className="m-auto hidden gap-[22px] md:flex" aria-label="Main navigation">
+          {navigation.map(([label, href]) => (
+            <Link
+              key={label}
+              href={href}
+              className={
+                pathname === href ||
+                (label === "Products" && pathname.startsWith("/products"))
+                  ? "border-b-2 border-indigo-600 py-[26px] text-[0.89rem] font-semibold text-indigo-900"
+                  : "border-b-2 border-transparent py-[26px] text-[0.89rem] font-semibold text-slate-600 hover:border-indigo-600 hover:text-indigo-900"
+              }
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <form className="relative hidden md:block" onSubmit={submitSearch}>
+            <span className="absolute left-3 top-3 text-slate-500">
+              <Icon name="search" />
+            </span>
+            <label className="sr-only" htmlFor="site-search">
+              Search
+            </label>
+            <input
+              id="site-search"
+              className="w-[180px] rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search products"
+            />
+          </form>
+          <Link
+            className="hidden text-xs font-extrabold text-indigo-700 md:inline"
+            href="/admin"
+          >
+            Admin
+          </Link>
+          <Link
+            className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
+            href="/profile"
+            aria-label="Profile"
+          >
+            <Icon name="user" />
+          </Link>
+          <Link
+            className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
+            href="/cart"
+            aria-label="Cart"
+          >
+            <Icon name="cart" />
+            <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-indigo-600 px-1 text-[0.65rem] text-white">
+              2
+            </span>
+          </Link>
+          <button
+            className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white md:hidden"
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <Icon name="menu" />
+          </button>
+        </div>
+      </div>
+
+      {menuOpen && (
+        <nav className="grid px-3 pb-4 pt-2 md:hidden" aria-label="Mobile navigation">
+          {navigation.map(([label, href]) => (
+            <Link
+              key={label}
+              href={href}
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+          <Link href="/login" onClick={() => setMenuOpen(false)}>
+            Login
+          </Link>
+          <Link href="/profile" onClick={() => setMenuOpen(false)}>
+            Profile
+          </Link>
+          <Link href="/admin" onClick={() => setMenuOpen(false)}>
+            Admin Dashboard
+          </Link>
+          <form
+            onSubmit={submitSearch}
+            className="flex items-center gap-3 pt-3"
+          >
+            <input
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search products"
+              aria-label="Search products"
+            />
+            <button
+              className="inline-flex min-h-[42px] items-center justify-center rounded-lg bg-indigo-800 px-[17px] py-2.5 font-bold text-white"
+              type="submit"
+            >
+              Search
+            </button>
+          </form>
+        </nav>
+      )}
+    </header>
+  );
 }

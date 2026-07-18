@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -36,18 +36,18 @@ export default function CartPage() {
   }
 
   return (
-    <div className="page">
-      <div className="container">
-        <div className="page-head">
+    <div className="min-h-[60vh] py-12 pb-20">
+      <div className="mx-auto w-full max-w-[1180px] px-4">
+        <div className="mb-7 flex items-end justify-between gap-6">
           <div>
-            <span className="eyebrow">Your selection</span>
+            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">Your selection</span>
             <h1>Shopping cart</h1>
           </div>
           <Link href="/products">{"\u2190"} Continue shopping</Link>
         </div>
 
         {items.length ? (
-          <div className="cart-layout">
+          <div className="grid gap-[38px] lg:grid-cols-[1fr_370px]">
             <CartList
               items={items}
               setQuantity={updateQuantity}
@@ -67,3 +67,4 @@ export default function CartPage() {
     </div>
   );
 }
+

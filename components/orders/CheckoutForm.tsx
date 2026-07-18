@@ -37,10 +37,10 @@ export function CheckoutForm() {
   }
 
   return (
-    <form className="stack" onSubmit={submit} noValidate>
-      <section className="panel" style={{ padding: 24 }}>
+    <form className="grid gap-[18px]" onSubmit={submit} noValidate>
+      <section className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
         <h2>Contact information</h2>
-        <div className="form-grid">
+        <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
           <Input label="First name" name="firstName" required />
           <Input label="Last name" name="lastName" required />
           <Input label="Email" name="email" type="email" required />
@@ -48,9 +48,9 @@ export function CheckoutForm() {
         </div>
       </section>
 
-      <section className="panel" style={{ padding: 24 }}>
+      <section className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
         <h2>Shipping address</h2>
-        <div className="form-grid">
+        <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2">
           <Select label="Country" name="country" options={countryOptions} />
           <Input label="City" name="city" required />
           <Input label="Address" name="address" required />
@@ -58,12 +58,12 @@ export function CheckoutForm() {
         </div>
       </section>
 
-      <section className="panel" style={{ padding: 24 }}>
+      <section className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
         <h2>Delivery method</h2>
-        <label className="spread panel" style={{ padding: 15 }}>
+        <label className="flex items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white p-[15px] shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
           <span>
             <strong>Standard delivery</strong>
-            <span className="muted" style={{ display: "block" }}>
+            <span className="block leading-7 text-slate-500">
               3{"\u2013"}5 business days
             </span>
           </span>
@@ -73,14 +73,14 @@ export function CheckoutForm() {
         </label>
       </section>
 
-      <section className="panel" style={{ padding: 24 }}>
+      <section className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
         <h2>Payment method</h2>
-        <div className="stack">
-          <label className="row">
+        <div className="grid gap-[18px]">
+          <label className="flex items-center gap-3">
             <input type="radio" name="payment" defaultChecked /> Cash on
             delivery
           </label>
-          <label className="row">
+          <label className="flex items-center gap-3">
             <input type="radio" name="payment" /> Mock card payment
           </label>
         </div>
@@ -88,7 +88,10 @@ export function CheckoutForm() {
 
       {error && <ErrorMessage message={error} />}
       {message && (
-        <div className="message" role="status">
+        <div
+          className="rounded-md bg-emerald-50 p-3 text-emerald-700"
+          role="status"
+        >
           {message}
         </div>
       )}

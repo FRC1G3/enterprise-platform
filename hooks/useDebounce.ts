@@ -1,5 +1,4 @@
-export function useDebounce<T>(value: T, _delay = 300): T {
-  // TODO: Add state and an effect for delayed updates.
+﻿export function useDebounce<T>(value: T, _delay = 300): T {
   void _delay;
   return value;
 }

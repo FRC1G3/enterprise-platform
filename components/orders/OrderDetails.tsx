@@ -1,5 +1,4 @@
-export function OrderDetails() {
-  // TODO: Add props, styling, and component behavior.
+﻿export function OrderDetails() {
   return <div>order details</div>;
 }
 

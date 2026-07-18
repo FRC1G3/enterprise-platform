@@ -21,11 +21,16 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="panel auth-card stack">
+    <form
+      onSubmit={submit}
+      className="grid w-full max-w-[480px] gap-[18px] rounded-[14px] border border-slate-200 bg-white p-8 shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
+    >
       <div>
-        <span className="eyebrow">Welcome back</span>
+        <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">
+          Welcome back
+        </span>
         <h1>Sign in to Nova</h1>
-        <p className="muted">
+        <p className="leading-7 text-slate-500">
           Access your orders, saved items and account details.
         </p>
       </div>
@@ -39,17 +44,20 @@ export function LoginForm() {
       />
       <Input label="Password" name="password" type="password" required />
 
-      <div className="spread">
-        <label className="row">
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex items-center gap-3">
           <input type="checkbox" /> Remember me
         </label>
-        <a href="#" className="muted">
+        <a href="#" className="leading-7 text-slate-500">
           Forgot password?
         </a>
       </div>
 
       {done && (
-        <div className="message" role="status">
+        <div
+          className="rounded-md bg-emerald-50 p-3 text-emerald-700"
+          role="status"
+        >
           Demo login successful. Authentication is not connected.
         </div>
       )}
@@ -58,17 +66,17 @@ export function LoginForm() {
         Login
       </Button>
 
-      <p style={{ textAlign: "center" }}>
+      <p className="text-center">
         New to Nova?{" "}
         <Link
           href="/register"
-          style={{ color: "var(--brand)", fontWeight: 800 }}
+          className="font-extrabold text-indigo-800"
         >
           Create account
         </Link>
       </p>
 
-      <div className="auth-demo">
+      <div className="rounded-lg bg-indigo-50 p-3.5 text-[0.82rem]">
         <strong>Demo accounts</strong>
         <br />
         User: user@novastore.com / password123
