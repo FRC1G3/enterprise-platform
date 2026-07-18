@@ -26,7 +26,7 @@ export default async function ProductDetailsPage({
   return (
     <div className="min-h-[60vh] py-12 pb-20">
       <div className="mx-auto w-full max-w-[1180px] px-4">
-        <nav className="breadcrumb">
+        <nav className="mb-7 flex gap-2 text-[0.85rem] text-slate-500">
           <Link href="/">Home</Link>
           <span>/</span>
           <Link href="/products">Products</Link>

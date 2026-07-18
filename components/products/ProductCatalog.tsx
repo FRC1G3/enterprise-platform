@@ -143,7 +143,10 @@ export function ProductCatalog({
           <ProductList products={filteredProducts} view={view} />
 
           {filteredProducts.length > 0 && (
-            <nav className="pagination" aria-label="Pagination">
+            <nav
+              className="mt-[42px] flex justify-center gap-[7px]"
+              aria-label="Pagination"
+            >
               <button
                 className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-white"
                 type="button"

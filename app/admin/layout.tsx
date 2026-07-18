@@ -9,8 +9,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-[#f4f6f8]">
       <AdminSidebar open={open} onNavigate={() => setOpen(false)} />
-      <div className="admin-main">
-        <header className="admin-header">
+      <div className="md:ml-[250px]">
+        <header className="sticky top-0 z-40 flex h-[70px] items-center justify-between border-b border-slate-200 bg-white px-7">
           <div className="flex items-center gap-3">
             <button
               className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white md:hidden"
@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        <main className="admin-content">{children}</main>
+        <main className="p-[22px_14px] md:p-[30px]">{children}</main>
       </div>
     </div>
   );

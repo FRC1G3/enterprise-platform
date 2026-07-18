@@ -56,7 +56,7 @@ export default function AdminAnalyticsPage() {
           >
             <span className="leading-7 text-slate-500">{stat[0]}</span>
             <strong>{stat[1]}</strong>
-            <span className="trend">{stat[2]}</span>
+            <span className="text-emerald-700">{stat[2]}</span>
           </article>
         ))}
       </div>

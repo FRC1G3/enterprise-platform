@@ -46,7 +46,7 @@ export default function AdminInventoryPage() {
               return (
                 <tr
                   key={product.id}
-                  className={stock < 10 ? "stock-low" : ""}
+                  className={stock < 10 ? "bg-amber-50" : ""}
                 >
                   <td>
                     <div className="flex items-center gap-[11px]">

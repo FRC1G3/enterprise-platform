@@ -40,7 +40,7 @@ export default function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="admin-filters">
+      <div className="mb-[18px] flex flex-wrap gap-2.5 [&_input]:min-w-[170px] [&_input]:w-auto [&_select]:min-w-[170px] [&_select]:w-auto">
         <input
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
           value={search}
@@ -87,7 +87,7 @@ export default function AdminProductsPage() {
             {visible.map((product) => (
               <tr
                 key={product.id}
-                className={product.stock < 6 ? "stock-low" : ""}
+                className={product.stock < 6 ? "bg-amber-50" : ""}
               >
                 <td>
                   <div className="flex items-center gap-[11px]">
@@ -140,12 +140,25 @@ export default function AdminProductsPage() {
         </table>
       </div>
 
-      <nav className="pagination">
-        <button type="button" className="active">
+      <nav className="mt-[42px] flex justify-center gap-[7px]">
+        <button
+          type="button"
+          className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-indigo-900 text-white"
+        >
           1
         </button>
-        <button type="button">2</button>
-        <button type="button">3</button>
+        <button
+          type="button"
+          className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-white"
+        >
+          2
+        </button>
+        <button
+          type="button"
+          className="h-[38px] w-[38px] rounded-md border border-slate-200 bg-white"
+        >
+          3
+        </button>
       </nav>
 
       <Modal

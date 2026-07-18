@@ -28,7 +28,7 @@ export default function ActivityLogsPage() {
         </div>
       </div>
 
-      <div className="admin-filters">
+      <div className="mb-[18px] flex flex-wrap gap-2.5 [&_input]:min-w-[170px] [&_input]:w-auto [&_select]:min-w-[170px] [&_select]:w-auto">
         <input
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
           value={q}
