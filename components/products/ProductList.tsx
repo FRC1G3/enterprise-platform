@@ -1,9 +1,9 @@
 import { EmptyState } from "@/components/ui/EmptyState";
-import type { StoreProduct } from "@/lib/mock-data";
+import type { ProductCardItem } from "@/types/product";
 import { ProductCard } from "./ProductCard";
 
 interface ProductListProps {
-  products: StoreProduct[];
+  products: ProductCardItem[];
   view?: "grid" | "list";
 }
 

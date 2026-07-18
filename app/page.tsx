@@ -1,8 +1,12 @@
 ﻿import Image from "next/image";
 import Link from "next/link";
 import { ProductList } from "@/components/products/ProductList";
-import { categories, products } from "@/lib/mock-data";
-
+import { categories } from "@/lib/catalog-data";
+import {
+  getFeaturedProducts,
+  getNewArrivalProducts,
+} from "@/lib/services/product.service";
+export const revalidate = 60;
 const benefits = [
   ["↗", "Free shipping", "On orders over $100"],
   ["⌁", "Secure checkout", "Protected mock payments"],
@@ -10,9 +14,11 @@ const benefits = [
   ["○", "Customer support", "Here whenever you need us"],
 ];
 
-export default function HomePage() {
-  const featured = products.filter((product) => product.isFeatured).slice(0, 4);
-  const newArrivals = products.filter((product) => product.isNew).slice(0, 4);
+export default async function HomePage() {
+  const [featured, newArrivals] = await Promise.all([
+    getFeaturedProducts(4),
+    getNewArrivalProducts(4),
+  ]);
 
   return (
     <>

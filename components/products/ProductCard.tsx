@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import type { StoreProduct } from "@/lib/mock-data";
+import type { ProductCardItem } from "@/types/product";
 
 interface ProductCardProps {
-  product: StoreProduct;
+  product: ProductCardItem;
   view?: "grid" | "list";
 }
 

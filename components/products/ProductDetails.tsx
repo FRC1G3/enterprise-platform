@@ -3,18 +3,18 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import type { StoreProduct } from "@/lib/mock-data";
+import type { Product } from "@/types/product";
 import { ProductList } from "./ProductList";
 
 type ProductDetailsProps = {
-  product: StoreProduct;
-  related: StoreProduct[];
+  product: Product;
+  related: Product[];
 };
 
 export function ProductDetails({ product, related }: ProductDetailsProps) {
   const [image, setImage] = useState(product.image);
-  const [size, setSize] = useState(product.sizes[0]);
-  const [color, setColor] = useState(product.colors[0]);
+  const [size, setSize] = useState(product.sizes[0] ?? "");
+  const [color, setColor] = useState(product.colors[0] ?? "");
   const [qty, setQty] = useState(1);
 
   return (
@@ -137,9 +137,12 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
                     {qty}
                   </span>
                   <button
-                    className="grid h-[42px] w-10 place-items-center bg-white"
+                    className="grid h-[42px] w-10 place-items-center bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     type="button"
-                    onClick={() => setQty(qty + 1)}
+                    onClick={() =>
+                      setQty((current) => Math.min(product.stock, current + 1))
+                    }
+                    disabled={qty >= product.stock}
                     aria-label="Increase quantity"
                   >
                     +
@@ -172,7 +175,9 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-50 p-[15px]">
               <strong>Free shipping</strong>
-              <div className="leading-7 text-slate-500">On orders above $100</div>
+              <div className="leading-7 text-slate-500">
+                On orders above $100
+              </div>
             </div>
             <div className="bg-slate-50 p-[15px]">
               <strong>Easy returns</strong>
@@ -183,16 +188,16 @@ export function ProductDetails({ product, related }: ProductDetailsProps) {
           <div className="mt-5 border-t border-slate-200 py-5">
             <h3>Product details</h3>
             <p className="leading-7 text-slate-500">
-              Premium materials · Designed for everyday wear · SKU {product.sku} ·
-              Thoughtfully finished.
+              Premium materials · Designed for everyday wear · SKU {product.sku}{" "}
+              · Thoughtfully finished.
             </p>
           </div>
 
           <div className="border-t border-slate-200 py-5">
             <h3>Reviews ({product.reviewCount})</h3>
             <p className="leading-7 text-slate-500">
-              Customer review content will be available when the review service is
-              connected.
+              Customer review content will be available when the review service
+              is connected.
             </p>
           </div>
         </div>
