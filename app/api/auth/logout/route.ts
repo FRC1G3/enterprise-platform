@@ -1,9 +1,26 @@
 ﻿import { NextResponse } from "next/server";
 
-function notImplemented() {
-  return NextResponse.json({ success: false, message: "Not implemented yet" }, { status: 501 });
-}
+import { deleteSession } from "@/lib/auth/session";
 
 export async function POST() {
-  return notImplemented();
+  try {
+    await deleteSession();
+
+    return NextResponse.json({
+      success: true,
+      message: "Logout successful.",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Logout could not be completed.",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
 }
