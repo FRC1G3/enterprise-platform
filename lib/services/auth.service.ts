@@ -1,19 +1,10 @@
-import {
-  Prisma,
-  UserRole,
-} from "@/generated/prisma/client";
+import { Prisma, UserRole } from "@/generated/prisma/client";
 
-import {
-  hashPassword,
-  verifyPassword,
-} from "@/lib/auth/password";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
 
 import prisma from "@/lib/db/prisma";
 
-import type {
-  LoginInput,
-  RegisterInput,
-} from "@/schemas/auth.schema";
+import type { LoginInput, RegisterInput } from "@/schemas/auth.schema";
 
 import type { AuthUser } from "@/types/auth";
 
@@ -23,6 +14,12 @@ const authUserSelect = {
   email: true,
   role: true,
   isActive: true,
+  phone: true,
+  avatar: true,
+  country: true,
+  city: true,
+  address: true,
+  postalCode: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;
@@ -59,23 +56,27 @@ export class InvalidSessionError extends Error {
   }
 }
 
-function serializeAuthUser(
-  user: AuthUserRecord,
-): AuthUser {
+function serializeAuthUser(user: AuthUserRecord): AuthUser {
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
-  };
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+
+  phone: user.phone,
+  avatar: user.avatar,
+  country: user.country,
+  city: user.city,
+  address: user.address,
+  postalCode: user.postalCode,
+
+  isActive: user.isActive,
+  createdAt: user.createdAt.toISOString(),
+  updatedAt: user.updatedAt.toISOString(),
+};
 }
 
-function isUniqueConstraintError(
-  error: unknown,
-): boolean {
+function isUniqueConstraintError(error: unknown): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
@@ -84,9 +85,7 @@ function isUniqueConstraintError(
   );
 }
 
-export async function registerUser(
-  input: RegisterInput,
-): Promise<AuthUser> {
+export async function registerUser(input: RegisterInput): Promise<AuthUser> {
   const existingUser = await prisma.user.findUnique({
     where: {
       email: input.email,
@@ -100,9 +99,7 @@ export async function registerUser(
     throw new EmailAlreadyExistsError();
   }
 
-  const passwordHash = await hashPassword(
-    input.password,
-  );
+  const passwordHash = await hashPassword(input.password);
 
   try {
     const user = await prisma.user.create({
@@ -130,9 +127,7 @@ export async function registerUser(
   }
 }
 
-export async function authenticateUser(
-  input: LoginInput,
-): Promise<AuthUser> {
+export async function authenticateUser(input: LoginInput): Promise<AuthUser> {
   const user = await prisma.user.findUnique({
     where: {
       email: input.email,
@@ -163,9 +158,7 @@ export async function authenticateUser(
   return serializeAuthUser(user);
 }
 
-export async function getAuthenticatedUser(
-  userId: string,
-): Promise<AuthUser> {
+export async function getAuthenticatedUser(userId: string): Promise<AuthUser> {
   const user = await prisma.user.findUnique({
     where: {
       id: userId,

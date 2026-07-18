@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
+import {
+  type FormEvent,
+  useState,
+} from "react";
+
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { useAuthContext } from "@/lib/contexts/AuthContext";
 
 const navigation = [
   ["Home", "/"],
@@ -13,7 +22,11 @@ const navigation = [
   ["Accessories", "/products?category=Accessories"],
 ];
 
-function Icon({ name }: { name: "search" | "user" | "cart" | "menu" }) {
+function Icon({
+  name,
+}: {
+  name: "search" | "user" | "cart" | "menu";
+}) {
   const icons = {
     search: (
       <>
@@ -35,9 +48,7 @@ function Icon({ name }: { name: "search" | "user" | "cart" | "menu" }) {
       </>
     ),
     menu: (
-      <>
-        <path d="M4 7h16M4 12h16M4 17h16" />
-      </>
+      <path d="M4 7h16M4 12h16M4 17h16" />
     ),
   };
 
@@ -59,30 +70,51 @@ function Icon({ name }: { name: "search" | "user" | "cart" | "menu" }) {
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
+
+  const {
+    user,
+    isAuthenticated,
+    isLoading,
+  } = useAuthContext();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
+  function submitSearch(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
-    router.push(`/products?search=${encodeURIComponent(search)}`);
+
+    router.push(
+      `/products?search=${encodeURIComponent(search)}`,
+    );
+
     setMenuOpen(false);
   }
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-[72px] w-full max-w-[1180px] items-center gap-[30px] px-4">
-        <Link className="whitespace-nowrap text-[1.35rem] font-black" href="/">
-          <span className="text-indigo-600">NOVA</span> STORE
+        <Link
+          className="whitespace-nowrap text-[1.35rem] font-black"
+          href="/"
+        >
+          <span className="text-indigo-600">NOVA</span>{" "}
+          STORE
         </Link>
 
-        <nav className="m-auto hidden gap-[22px] md:flex" aria-label="Main navigation">
+        <nav
+          className="m-auto hidden gap-[22px] md:flex"
+          aria-label="Main navigation"
+        >
           {navigation.map(([label, href]) => (
             <Link
               key={label}
               href={href}
               className={
                 pathname === href ||
-                (label === "Products" && pathname.startsWith("/products"))
+                (label === "Products" &&
+                  pathname.startsWith("/products"))
                   ? "border-b-2 border-indigo-600 py-[26px] text-[0.89rem] font-semibold text-indigo-900"
                   : "border-b-2 border-transparent py-[26px] text-[0.89rem] font-semibold text-slate-600 hover:border-indigo-600 hover:text-indigo-900"
               }
@@ -93,49 +125,85 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <form className="relative hidden md:block" onSubmit={submitSearch}>
+          <form
+            className="relative hidden md:block"
+            onSubmit={submitSearch}
+          >
             <span className="absolute left-3 top-3 text-slate-500">
               <Icon name="search" />
             </span>
-            <label className="sr-only" htmlFor="site-search">
+
+            <label
+              className="sr-only"
+              htmlFor="site-search"
+            >
               Search
             </label>
+
             <input
               id="site-search"
               className="w-[180px] rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
               placeholder="Search products"
             />
           </form>
-          <Link
-            className="hidden text-xs font-extrabold text-indigo-700 md:inline"
-            href="/admin"
-          >
-            Admin
-          </Link>
+
+          {!isLoading && user?.role === "ADMIN" && (
+            <Link
+              className="hidden text-xs font-extrabold text-indigo-700 md:inline"
+              href="/admin"
+            >
+              Admin
+            </Link>
+          )}
+
+          {!isLoading && !isAuthenticated && (
+            <Link
+              className="hidden text-xs font-extrabold text-indigo-700 md:inline"
+              href="/login"
+            >
+              Login
+            </Link>
+          )}
+
           <Link
             className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
-            href="/profile"
-            aria-label="Profile"
+            href={isAuthenticated ? "/profile" : "/login"}
+            aria-label={
+              isAuthenticated
+                ? `Profile: ${user?.name}`
+                : "Login"
+            }
+            title={user?.name ?? "Login"}
           >
             <Icon name="user" />
           </Link>
+
           <Link
             className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
             href="/cart"
             aria-label="Cart"
           >
             <Icon name="cart" />
-            <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-indigo-600 px-1 text-[0.65rem] text-white">
-              2
-            </span>
           </Link>
+
+          {isAuthenticated && (
+            <div className="hidden lg:block">
+              <LogoutButton />
+            </div>
+          )}
+
           <button
             className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white md:hidden"
+            type="button"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() =>
+              setMenuOpen((current) => !current)
+            }
           >
             <Icon name="menu" />
           </button>
@@ -143,7 +211,10 @@ export function Header() {
       </div>
 
       {menuOpen && (
-        <nav className="grid px-3 pb-4 pt-2 md:hidden" aria-label="Mobile navigation">
+        <nav
+          className="grid gap-3 px-4 pb-4 pt-2 md:hidden"
+          aria-label="Mobile navigation"
+        >
           {navigation.map(([label, href]) => (
             <Link
               key={label}
@@ -153,15 +224,47 @@ export function Header() {
               {label}
             </Link>
           ))}
-          <Link href="/login" onClick={() => setMenuOpen(false)}>
-            Login
-          </Link>
-          <Link href="/profile" onClick={() => setMenuOpen(false)}>
-            Profile
-          </Link>
-          <Link href="/admin" onClick={() => setMenuOpen(false)}>
-            Admin Dashboard
-          </Link>
+
+          {!isAuthenticated ? (
+            <>
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/register"
+                onClick={() => setMenuOpen(false)}
+              >
+                Register
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/profile"
+                onClick={() => setMenuOpen(false)}
+              >
+                Profile — {user?.name}
+              </Link>
+
+              {user?.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Admin Dashboard
+                </Link>
+              )}
+
+              <LogoutButton
+                onLoggedOut={() => setMenuOpen(false)}
+              />
+            </>
+          )}
+
           <form
             onSubmit={submitSearch}
             className="flex items-center gap-3 pt-3"
@@ -169,10 +272,13 @@ export function Header() {
             <input
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
               placeholder="Search products"
               aria-label="Search products"
             />
+
             <button
               className="inline-flex min-h-[42px] items-center justify-center rounded-lg bg-indigo-800 px-[17px] py-2.5 font-bold text-white"
               type="submit"

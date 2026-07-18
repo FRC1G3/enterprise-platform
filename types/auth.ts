@@ -11,6 +11,14 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+
+  phone: string | null;
+  avatar: string | null;
+  country: string | null;
+  city: string | null;
+  address: string | null;
+  postalCode: string | null;
+
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
