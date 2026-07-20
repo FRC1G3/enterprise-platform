@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminApi } from "@/lib/auth/guards";
+
 import {
   createProduct,
   listProducts,
@@ -52,6 +54,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authorization = await requireAdminApi();
+
+  if (!authorization.authorized) {
+    return authorization.response;
+  }
+
   let body: unknown;
 
   try {

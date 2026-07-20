@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminApi } from "@/lib/auth/guards";
+
 import {
   deleteProduct,
   getProductByIdOrSlug,
@@ -72,7 +74,25 @@ export async function PUT(
   request: NextRequest,
   context: ProductRouteContext,
 ) {
+  const authorization = await requireAdminApi();
+
+  if (!authorization.authorized) {
+    return authorization.response;
+  }
+
   const { id } = await context.params;
+
+  if (!id.trim()) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Product identifier is required.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 
   let body: unknown;
 
@@ -106,7 +126,10 @@ export async function PUT(
   }
 
   try {
-    const product = await updateProduct(id, bodyResult.data);
+    const product = await updateProduct(
+      id,
+      bodyResult.data,
+    );
 
     return NextResponse.json({
       success: true,
@@ -156,7 +179,25 @@ export async function DELETE(
   _request: NextRequest,
   context: ProductRouteContext,
 ) {
+  const authorization = await requireAdminApi();
+
+  if (!authorization.authorized) {
+    return authorization.response;
+  }
+
   const { id } = await context.params;
+
+  if (!id.trim()) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Product identifier is required.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 
   try {
     const result = await deleteProduct(id);
