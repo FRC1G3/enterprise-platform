@@ -1,20 +1,49 @@
-import { CartItem, type CartLine } from "./CartItem";
+import { CartItem } from "@/components/cart/CartItem";
 
-type CartListProps = {
-  items: CartLine[];
-  setQuantity: (id: string, quantity: number) => void;
-  remove: (id: string) => void;
-};
+import type {
+  CartItem as CartItemData,
+} from "@/types/cart";
 
-export function CartList({ items, setQuantity, remove }: CartListProps) {
+interface CartListProps {
+  items: CartItemData[];
+
+  updatingItemId: string | null;
+  removingItemId: string | null;
+
+  setQuantity: (
+    itemId: string,
+    quantity: number,
+  ) => void;
+
+  remove: (itemId: string) => void;
+}
+
+export function CartList({
+  items,
+  updatingItemId,
+  removingItemId,
+  setQuantity,
+  remove,
+}: CartListProps) {
   return (
     <div>
       {items.map((item) => (
         <CartItem
-          key={item.product.id}
+          key={item.id}
           item={item}
-          onQuantity={(quantity) => setQuantity(item.product.id, quantity)}
-          onRemove={() => remove(item.product.id)}
+          isUpdating={
+            updatingItemId === item.id
+          }
+          isRemoving={
+            removingItemId === item.id
+          }
+          onQuantity={(quantity) =>
+            setQuantity(
+              item.id,
+              quantity,
+            )
+          }
+          onRemove={() => remove(item.id)}
         />
       ))}
     </div>

@@ -11,6 +11,9 @@ import {
 } from "react";
 
 import { LogoutButton } from "@/components/auth/LogoutButton";
+
+import { useCart } from "@/hooks/useCart";
+
 import { useAuthContext } from "@/lib/contexts/AuthContext";
 
 const navigation = [
@@ -19,34 +22,64 @@ const navigation = [
   ["Men", "/products?category=Men"],
   ["Women", "/products?category=Women"],
   ["Shoes", "/products?category=Shoes"],
-  ["Accessories", "/products?category=Accessories"],
+  [
+    "Accessories",
+    "/products?category=Accessories",
+  ],
 ];
 
 function Icon({
   name,
 }: {
-  name: "search" | "user" | "cart" | "menu";
+  name:
+    | "search"
+    | "user"
+    | "cart"
+    | "menu";
 }) {
   const icons = {
     search: (
       <>
-        <circle cx="11" cy="11" r="7" />
+        <circle
+          cx="11"
+          cy="11"
+          r="7"
+        />
+
         <path d="m20 20-4-4" />
       </>
     ),
+
     user: (
       <>
-        <circle cx="12" cy="8" r="4" />
+        <circle
+          cx="12"
+          cy="8"
+          r="4"
+        />
+
         <path d="M4 21a8 8 0 0 1 16 0" />
       </>
     ),
+
     cart: (
       <>
         <path d="M3 4h2l2 11h11l2-7H6" />
-        <circle cx="9" cy="20" r="1" />
-        <circle cx="18" cy="20" r="1" />
+
+        <circle
+          cx="9"
+          cy="20"
+          r="1"
+        />
+
+        <circle
+          cx="18"
+          cy="20"
+          r="1"
+        />
       </>
     ),
+
     menu: (
       <path d="M4 7h16M4 12h16M4 17h16" />
     ),
@@ -77,8 +110,15 @@ export function Header() {
     isLoading,
   } = useAuthContext();
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const { totals } = useCart(
+    isAuthenticated && !isLoading,
+  );
+
+  const [menuOpen, setMenuOpen] =
+    useState(false);
+
+  const [search, setSearch] =
+    useState("");
 
   function submitSearch(
     event: FormEvent<HTMLFormElement>,
@@ -86,7 +126,9 @@ export function Header() {
     event.preventDefault();
 
     router.push(
-      `/products?search=${encodeURIComponent(search)}`,
+      `/products?search=${encodeURIComponent(
+        search,
+      )}`,
     );
 
     setMenuOpen(false);
@@ -99,7 +141,9 @@ export function Header() {
           className="whitespace-nowrap text-[1.35rem] font-black"
           href="/"
         >
-          <span className="text-indigo-600">NOVA</span>{" "}
+          <span className="text-indigo-600">
+            NOVA
+          </span>{" "}
           STORE
         </Link>
 
@@ -107,21 +151,25 @@ export function Header() {
           className="m-auto hidden gap-[22px] md:flex"
           aria-label="Main navigation"
         >
-          {navigation.map(([label, href]) => (
-            <Link
-              key={label}
-              href={href}
-              className={
-                pathname === href ||
-                (label === "Products" &&
-                  pathname.startsWith("/products"))
-                  ? "border-b-2 border-indigo-600 py-[26px] text-[0.89rem] font-semibold text-indigo-900"
-                  : "border-b-2 border-transparent py-[26px] text-[0.89rem] font-semibold text-slate-600 hover:border-indigo-600 hover:text-indigo-900"
-              }
-            >
-              {label}
-            </Link>
-          ))}
+          {navigation.map(
+            ([label, href]) => (
+              <Link
+                key={label}
+                href={href}
+                className={
+                  pathname === href ||
+                  (label === "Products" &&
+                    pathname.startsWith(
+                      "/products",
+                    ))
+                    ? "border-b-2 border-indigo-600 py-[26px] text-[0.89rem] font-semibold text-indigo-900"
+                    : "border-b-2 border-transparent py-[26px] text-[0.89rem] font-semibold text-slate-600 hover:border-indigo-600 hover:text-indigo-900"
+                }
+              >
+                {label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -145,33 +193,41 @@ export function Header() {
               className="w-[180px] rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value,
+                )
               }
               placeholder="Search products"
             />
           </form>
 
-          {!isLoading && user?.role === "ADMIN" && (
-            <Link
-              className="hidden text-xs font-extrabold text-indigo-700 md:inline"
-              href="/admin"
-            >
-              Admin
-            </Link>
-          )}
+          {!isLoading &&
+            user?.role === "ADMIN" && (
+              <Link
+                className="hidden text-xs font-extrabold text-indigo-700 md:inline"
+                href="/admin"
+              >
+                Admin
+              </Link>
+            )}
 
-          {!isLoading && !isAuthenticated && (
-            <Link
-              className="hidden text-xs font-extrabold text-indigo-700 md:inline"
-              href="/login"
-            >
-              Login
-            </Link>
-          )}
+          {!isLoading &&
+            !isAuthenticated && (
+              <Link
+                className="hidden text-xs font-extrabold text-indigo-700 md:inline"
+                href="/login"
+              >
+                Login
+              </Link>
+            )}
 
           <Link
             className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
-            href={isAuthenticated ? "/profile" : "/login"}
+            href={
+              isAuthenticated
+                ? "/profile"
+                : "/login"
+            }
             aria-label={
               isAuthenticated
                 ? `Profile: ${user?.name}`
@@ -184,10 +240,23 @@ export function Header() {
 
           <Link
             className="relative inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
-            href="/cart"
-            aria-label="Cart"
+            href={
+              isAuthenticated
+                ? "/cart"
+                : "/login"
+            }
+            aria-label={`Cart with ${totals.itemCount} items`}
           >
             <Icon name="cart" />
+
+            {isAuthenticated &&
+              totals.itemCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid min-h-[19px] min-w-[19px] place-items-center rounded-full bg-indigo-700 px-1 text-[10px] font-black text-white">
+                  {totals.itemCount > 99
+                    ? "99+"
+                    : totals.itemCount}
+                </span>
+              )}
           </Link>
 
           {isAuthenticated && (
@@ -202,7 +271,9 @@ export function Header() {
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
             onClick={() =>
-              setMenuOpen((current) => !current)
+              setMenuOpen(
+                (current) => !current,
+              )
             }
           >
             <Icon name="menu" />
@@ -215,28 +286,36 @@ export function Header() {
           className="grid gap-3 px-4 pb-4 pt-2 md:hidden"
           aria-label="Mobile navigation"
         >
-          {navigation.map(([label, href]) => (
-            <Link
-              key={label}
-              href={href}
-              onClick={() => setMenuOpen(false)}
-            >
-              {label}
-            </Link>
-          ))}
+          {navigation.map(
+            ([label, href]) => (
+              <Link
+                key={label}
+                href={href}
+                onClick={() =>
+                  setMenuOpen(false)
+                }
+              >
+                {label}
+              </Link>
+            ),
+          )}
 
           {!isAuthenticated ? (
             <>
               <Link
                 href="/login"
-                onClick={() => setMenuOpen(false)}
+                onClick={() =>
+                  setMenuOpen(false)
+                }
               >
                 Login
               </Link>
 
               <Link
                 href="/register"
-                onClick={() => setMenuOpen(false)}
+                onClick={() =>
+                  setMenuOpen(false)
+                }
               >
                 Register
               </Link>
@@ -245,22 +324,37 @@ export function Header() {
             <>
               <Link
                 href="/profile"
-                onClick={() => setMenuOpen(false)}
+                onClick={() =>
+                  setMenuOpen(false)
+                }
               >
                 Profile — {user?.name}
+              </Link>
+
+              <Link
+                href="/cart"
+                onClick={() =>
+                  setMenuOpen(false)
+                }
+              >
+                Cart ({totals.itemCount})
               </Link>
 
               {user?.role === "ADMIN" && (
                 <Link
                   href="/admin"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() =>
+                    setMenuOpen(false)
+                  }
                 >
                   Admin Dashboard
                 </Link>
               )}
 
               <LogoutButton
-                onLoggedOut={() => setMenuOpen(false)}
+                onLoggedOut={() =>
+                  setMenuOpen(false)
+                }
               />
             </>
           )}
@@ -273,7 +367,9 @@ export function Header() {
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value,
+                )
               }
               placeholder="Search products"
               aria-label="Search products"
