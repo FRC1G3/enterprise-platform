@@ -1,151 +1,333 @@
-﻿"use client";
-
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
-import { use, useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
-import { orders, products } from "@/lib/mock-data";
+import { notFound } from "next/navigation";
 
-const orderStatuses = [
+import { AdminOrderStatusForm } from "@/components/orders/AdminOrderStatusForm";
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+
+import {
+  AdminOrderNotFoundError,
+  getAdminOrder,
+} from "@/lib/services/admin-order.service";
+
+const currencyFormatter =
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+
+const dateFormatter =
+  new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const orderTimeline = [
   "PENDING",
   "CONFIRMED",
   "PROCESSING",
   "SHIPPED",
   "DELIVERED",
-  "CANCELLED",
-];
+] as const;
 
-export default function AdminOrderDetailsPage({
+async function getOrderPageData(
+  id: string,
+) {
+  try {
+    return await getAdminOrder(id);
+  } catch (error) {
+    if (
+      error instanceof
+      AdminOrderNotFoundError
+    ) {
+      notFound();
+    }
+
+    throw error;
+  }
+}
+
+export default async function AdminOrderDetailsPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{
+    id: string;
+  }>;
 }) {
-  const { id } = use(params);
-  const order = orders.find((item) => item.id === id) ?? orders[0];
-  const [status, setStatus] = useState(order.status);
-  const [done, setDone] = useState(false);
+  const { id } = await params;
+
+  const order =
+    await getOrderPageData(id);
+
+  const currentTimelineIndex =
+    orderTimeline.findIndex(
+      (status) =>
+        status === order.status,
+    );
+
+  const paymentMethodLabel =
+    order.paymentMethod ===
+    "CASH_ON_DELIVERY"
+      ? "Cash on delivery"
+      : "Mock card payment";
 
   return (
     <>
-      <div className="mb-7 flex items-end justify-between gap-6">
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <Link href="/admin/orders" className="leading-7 text-slate-500">
+          <Link
+            href="/admin/orders"
+            className="leading-7 text-slate-500"
+          >
             ← Orders
           </Link>
-          <h1>Order {order.id}</h1>
-          <p className="leading-7 text-slate-500">Received {order.date}</p>
+
+          <h1>
+            Order {order.orderNumber}
+          </h1>
+
+          <p className="leading-7 text-slate-500">
+            Received{" "}
+            {dateFormatter.format(
+              new Date(
+                order.createdAt,
+              ),
+            )}
+          </p>
         </div>
-        <OrderStatusBadge status={status} />
+
+        <OrderStatusBadge
+          status={order.status}
+        />
       </div>
 
       <div className="grid gap-[38px] lg:grid-cols-[1fr_370px]">
         <div className="grid gap-[18px]">
           <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-            <h2>Customer & shipping</h2>
+            <h2>
+              Customer and shipping
+            </h2>
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <small className="leading-7 text-slate-500">Customer</small>
+                <small className="leading-7 text-slate-500">
+                  Customer
+                </small>
+
                 <p>
-                  <strong>{order.customer}</strong>
+                  <strong>
+                    {order.customerName}
+                  </strong>
+
                   <br />
-                  emma@example.com
-                  <br />
-                  +1 202 555 0142
+
+                  {order.customerEmail}
+
+                  {order.customerPhone && (
+                    <>
+                      <br />
+
+                      {
+                        order.customerPhone
+                      }
+                    </>
+                  )}
                 </p>
               </div>
+
               <div>
-                <small className="leading-7 text-slate-500">Address</small>
-                <p>{order.address}</p>
+                <small className="leading-7 text-slate-500">
+                  Address
+                </small>
+
+                <p>
+                  {order.shippingAddress}
+
+                  <br />
+
+                  {order.shippingCity},{" "}
+                  {
+                    order.shippingPostalCode
+                  }
+
+                  <br />
+
+                  {
+                    order.shippingCountry
+                  }
+                </p>
               </div>
             </div>
           </section>
 
           <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
             <h2>Products</h2>
-            {products.slice(0, 3).map((product) => (
-              <div
-                className="flex items-center justify-between gap-3 border-b border-slate-200 py-3"
-                key={product.id}
-              >
-                <div className="flex items-center gap-3">
-                  <Image
-                    className="rounded-[5px] object-cover"
-                    src={product.image}
-                    alt={product.name}
-                    width={48}
-                    height={58}
-                  />
-                  <div>
-                    <strong>{product.name}</strong>
-                    <div className="leading-7 text-slate-500">
-                      Qty 1 · {product.sku}
+
+            {order.items.map(
+              (item) => (
+                <div
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 py-3"
+                  key={item.id}
+                >
+                  <div className="flex items-center gap-3">
+                    <Image
+                      className="h-[64px] w-[52px] rounded-[5px] object-cover"
+                      src={
+                        item.productImage
+                      }
+                      alt={
+                        item.productName
+                      }
+                      width={52}
+                      height={64}
+                    />
+
+                    <div>
+                      <strong>
+                        {item.productName}
+                      </strong>
+
+                      <div className="leading-7 text-slate-500">
+                        Qty{" "}
+                        {item.quantity}
+
+                        {item.selectedColor
+                          ? ` · ${item.selectedColor}`
+                          : ""}
+
+                        {item.selectedSize
+                          ? ` · ${item.selectedSize}`
+                          : ""}
+                      </div>
                     </div>
                   </div>
+
+                  <strong>
+                    {currencyFormatter.format(
+                      item.totalPrice,
+                    )}
+                  </strong>
                 </div>
-                <strong>${product.price}</strong>
-              </div>
-            ))}
+              ),
+            )}
           </section>
 
           <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
             <h2>Timeline</h2>
-            <div className="grid gap-5 border-l-2 border-slate-300 pl-6">
-              {["Order received", "Payment confirmed", "Processing"].map(
-                (item) => (
-                  <div key={item}>
-                    <strong>{item}</strong>
-                    <div className="leading-7 text-slate-500">Jul 15, 2026</div>
-                  </div>
-                ),
-              )}
-            </div>
-          </section>
-        </div>
 
-        <aside className="grid gap-[18px]">
-          <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-            <h3>Update status</h3>
-            <select
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
-                setDone(false);
-              }}
-              aria-label="Order status"
-            >
-              {orderStatuses.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
-            <label className="mt-3.5 grid gap-[7px]">
-              <span>Internal notes</span>
-              <textarea
-                className="min-h-[120px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                placeholder="Visible to admins only"
-              />
-            </label>
-            {done && (
-              <div className="mt-3 rounded-md bg-emerald-50 p-3 text-emerald-700">
-                Order updated in mock state.
+            {order.status ===
+            "CANCELLED" ? (
+              <div className="rounded-lg bg-red-50 p-4 text-red-700">
+                This order was cancelled.
+              </div>
+            ) : (
+              <div className="grid gap-5 border-l-2 border-slate-300 pl-6">
+                {orderTimeline.map(
+                  (
+                    status,
+                    index,
+                  ) => (
+                    <div key={status}>
+                      <strong>
+                        {status.replaceAll(
+                          "_",
+                          " ",
+                        )}
+                      </strong>
+
+                      <div
+                        className={
+                          currentTimelineIndex >=
+                          index
+                            ? "leading-7 text-emerald-700"
+                            : "leading-7 text-slate-500"
+                        }
+                      >
+                        {currentTimelineIndex >=
+                        index
+                          ? "Completed"
+                          : "Pending"}
+                      </div>
+                    </div>
+                  ),
+                )}
               </div>
             )}
-            <Button
-              className="mt-3.5 w-full"
-              onClick={() => setDone(true)}
-            >
-              Update order
-            </Button>
           </section>
+
+          {order.notes && (
+            <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+              <h2>Customer notes</h2>
+
+              <p className="leading-7 text-slate-500">
+                {order.notes}
+              </p>
+            </section>
+          )}
+        </div>
+
+        <aside className="grid h-max gap-[18px]">
+          <AdminOrderStatusForm
+            order={order}
+          />
 
           <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
             <h3>Payment</h3>
-            <p>Mock card ···· 4242</p>
-            <OrderStatusBadge status={order.payment} />
+
+            <p>{paymentMethodLabel}</p>
+
+            <OrderStatusBadge
+              status={
+                order.paymentStatus
+              }
+            />
+          </section>
+
+          <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+            <div className="flex justify-between py-2">
+              <span>Subtotal</span>
+
+              <span>
+                {currencyFormatter.format(
+                  order.subtotal,
+                )}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-2">
+              <span>Shipping</span>
+
+              <span>
+                {order.shipping === 0
+                  ? "Free"
+                  : currencyFormatter.format(
+                      order.shipping,
+                    )}
+              </span>
+            </div>
+
+            <div className="flex justify-between py-2">
+              <span>Discount</span>
+
+              <span>
+                −
+                {currencyFormatter.format(
+                  order.discount,
+                )}
+              </span>
+            </div>
+
             <div className="mt-2.5 flex justify-between border-t border-slate-200 pt-[18px] text-[1.18rem] font-black">
               <span>Total</span>
-              <span>${order.total}</span>
+
+              <span>
+                {currencyFormatter.format(
+                  order.total,
+                )}
+              </span>
             </div>
           </section>
         </aside>
@@ -153,4 +335,3 @@ export default function AdminOrderDetailsPage({
     </>
   );
 }
-
