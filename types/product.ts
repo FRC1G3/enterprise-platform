@@ -5,7 +5,8 @@ export const PRODUCT_CATEGORIES = [
   "Accessories",
 ] as const;
 
-export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+export type ProductCategory =
+  (typeof PRODUCT_CATEGORIES)[number];
 
 export interface Product {
   id: string;
@@ -26,6 +27,7 @@ export interface Product {
 
   rating: number;
   reviewCount: number;
+
   stock: number;
   reservedStock: number;
 
@@ -48,6 +50,7 @@ export interface ProductListResult {
   products: Product[];
   pagination: ProductPagination;
 }
+
 export type ProductCardItem = Pick<
   Product,
   | "id"
@@ -60,4 +63,8 @@ export type ProductCardItem = Pick<
   | "rating"
   | "reviewCount"
   | "isNew"
+  | "colors"
+  | "sizes"
+  | "stock"
+  | "isActive"
 >;
