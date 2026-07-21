@@ -1,139 +1,268 @@
-﻿import { products } from "@/lib/mock-data";
+﻿"use client";
 
-const category = [
-  ["Women", 38],
-  ["Men", 31],
-  ["Shoes", 21],
-  ["Accessories", 10],
-];
+import { useState } from "react";
 
-const months = [
-  ["Feb", 38],
-  ["Mar", 48],
-  ["Apr", 54],
-  ["May", 67],
-  ["Jun", 76],
-  ["Jul", 92],
-];
+import {
+  CategorySalesChart,
+  CustomerGrowthChart,
+  OrderStatusChart,
+} from "@/components/dashboard/AnalyticsCharts";
 
-const summaryStats = [
-  ["Revenue", "$48,290", "+12.4%"],
-  ["Orders", "1,284", "+8.2%"],
-  ["Conversion", "3.82%", "+0.4%"],
-  ["Avg. order value", "$118.40", "+6.1%"],
-];
+import { SalesSummary } from "@/components/dashboard/SalesSummary";
+import { StatCard } from "@/components/dashboard/StatCard";
 
-const orderStatusDistribution = [
-  ["Delivered", 66],
-  ["Processing", 19],
-  ["Shipped", 11],
-  ["Cancelled", 4],
-];
+import {
+  type AnalyticsPeriod,
+  useAnalytics,
+} from "@/hooks/useAnalytics";
+
+const currencyFormatter =
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+
+const numberFormatter =
+  new Intl.NumberFormat("en-US");
 
 export default function AdminAnalyticsPage() {
+  const [period, setPeriod] =
+    useState<AnalyticsPeriod>(30);
+
+  const {
+    analytics,
+    error,
+    isLoading,
+    isValidating,
+  } = useAnalytics(period);
+
   return (
     <>
-      <div className="mb-7 flex items-end justify-between gap-6">
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">Performance</span>
+          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">
+            Performance
+          </span>
+
           <h1>Analytics</h1>
+
           <p className="leading-7 text-slate-500">
-            A visual overview based on static demonstration data.
+            Live revenue, customer and
+            product performance.
           </p>
         </div>
-        <select className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" defaultValue="30" aria-label="Analytics period">
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-        </select>
-      </div>
 
-      <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
-        {summaryStats.map((stat) => (
-          <article
-            className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]"
-            key={stat[0]}
+        <div className="flex items-center gap-3">
+          {isValidating &&
+            !isLoading && (
+              <span className="text-sm text-slate-500">
+                Refreshing...
+              </span>
+            )}
+
+          <select
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            value={period}
+            onChange={(event) =>
+              setPeriod(
+                Number(
+                  event.target.value,
+                ) as AnalyticsPeriod,
+              )
+            }
+            aria-label="Analytics period"
           >
-            <span className="leading-7 text-slate-500">{stat[0]}</span>
-            <strong>{stat[1]}</strong>
-            <span className="text-emerald-700">{stat[2]}</span>
-          </article>
-        ))}
+            <option value={7}>
+              Last 7 days
+            </option>
+
+            <option value={30}>
+              Last 30 days
+            </option>
+
+            <option value={90}>
+              Last 90 days
+            </option>
+          </select>
+        </div>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-        <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-          <h2>Customer growth</h2>
-          <div className="flex h-[190px] items-end gap-3">
-            {months.map(([month, value]) => (
-              <div
-                className="relative min-h-5 flex-1 bg-indigo-500"
-                key={month}
-                style={{ height: `${value}%` }}
-              >
-                <span>{month}</span>
-              </div>
-            ))}
+      {error && (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          Analytics could not be loaded.{" "}
+          {error.message}
+        </div>
+      )}
+
+      {isLoading || !analytics ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500">
+          Loading analytics...
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label="Revenue"
+              value={currencyFormatter.format(
+                analytics.summary.revenue
+                  .value,
+              )}
+              changePercentage={
+                analytics.summary.revenue
+                  .changePercentage
+              }
+            />
+
+            <StatCard
+              label="Orders"
+              value={numberFormatter.format(
+                analytics.summary.orders
+                  .value,
+              )}
+              changePercentage={
+                analytics.summary.orders
+                  .changePercentage
+              }
+            />
+
+            <StatCard
+              label="New customers"
+              value={numberFormatter.format(
+                analytics.summary.customers
+                  .value,
+              )}
+              changePercentage={
+                analytics.summary.customers
+                  .changePercentage
+              }
+            />
+
+            <StatCard
+              label="Average order value"
+              value={currencyFormatter.format(
+                analytics.summary
+                  .averageOrderValue.value,
+              )}
+              changePercentage={
+                analytics.summary
+                  .averageOrderValue
+                  .changePercentage
+              }
+            />
           </div>
-        </section>
 
-        <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-          <h2>Sales by category</h2>
-          {category.map(([label, value]) => (
-            <div className="my-[18px]" key={label}>
-              <div className="flex items-center justify-between gap-3">
-                <span>{label}</span>
-                <strong>{value}%</strong>
-              </div>
-              <div className="h-2 bg-slate-200">
-                <span
-                  className="block h-full bg-indigo-600"
-                  style={{ width: `${value}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </section>
-      </div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+            <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+              <h2>Revenue trend</h2>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-        <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-          <h2>Top-selling products</h2>
-          {products.slice(0, 5).map((product, index) => (
-            <div
-              className="flex items-center justify-between gap-3 border-b border-slate-200 py-3"
-              key={product.id}
-            >
-              <div>
-                <strong>
-                  {index + 1}. {product.name}
-                </strong>
-                <div className="leading-7 text-slate-500">{product.category}</div>
-              </div>
-              <span>{214 - index * 27} sales</span>
-            </div>
-          ))}
-        </section>
+              <SalesSummary
+                data={
+                  analytics.salesTrend
+                }
+              />
+            </section>
 
-        <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-          <h2>Order status distribution</h2>
-          {orderStatusDistribution.map(([label, value]) => (
-            <div className="my-[18px]" key={label}>
-              <div className="flex items-center justify-between gap-3">
-                <span>{label}</span>
-                <strong>{value}%</strong>
-              </div>
-              <div className="h-2 bg-slate-200">
-                <span
-                  className="block h-full bg-indigo-600"
-                  style={{ width: `${value}%` }}
-                />
-              </div>
+            <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+              <h2>Order status</h2>
+
+              <OrderStatusChart
+                data={
+                  analytics.orderStatusDistribution
+                }
+              />
+            </section>
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+              <h2>New customers</h2>
+
+              <CustomerGrowthChart
+                data={
+                  analytics.customerGrowth
+                }
+              />
+            </section>
+
+            <section className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+              <h2>Sales by category</h2>
+
+              <CategorySalesChart
+                data={
+                  analytics.salesByCategory
+                }
+              />
+            </section>
+          </div>
+
+          <section className="mt-5 rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
+            <h2>Top-selling products</h2>
+
+            <div className="overflow-auto">
+              <table className="w-full min-w-[650px] border-collapse [&_td]:border-b [&_td]:border-slate-200 [&_td]:px-4 [&_td]:py-3.5 [&_td]:text-left [&_th]:border-b [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-left [&_th]:text-slate-500">
+                <thead>
+                  <tr>
+                    <th>Position</th>
+                    <th>Product</th>
+                    <th>Units sold</th>
+                    <th>Revenue</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {analytics.topProducts
+                    .length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="text-center text-slate-500"
+                      >
+                        No product sales for
+                        this period.
+                      </td>
+                    </tr>
+                  ) : (
+                    analytics.topProducts.map(
+                      (
+                        product,
+                        index,
+                      ) => (
+                        <tr
+                          key={`${product.productId}-${product.productName}`}
+                        >
+                          <td>
+                            #{index + 1}
+                          </td>
+
+                          <td>
+                            <strong>
+                              {
+                                product.productName
+                              }
+                            </strong>
+                          </td>
+
+                          <td>
+                            {
+                              product.quantity
+                            }
+                          </td>
+
+                          <td>
+                            {currencyFormatter.format(
+                              product.revenue,
+                            )}
+                          </td>
+                        </tr>
+                      ),
+                    )
+                  )}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </section>
-      </div>
+          </section>
+        </>
+      )}
     </>
   );
 }
-

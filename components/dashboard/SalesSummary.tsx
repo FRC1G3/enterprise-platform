@@ -1,28 +1,92 @@
-const sales = [
-  ["Mon", 42],
-  ["Tue", 63],
-  ["Wed", 48],
-  ["Thu", 84],
-  ["Fri", 72],
-  ["Sat", 96],
-  ["Sun", 76],
-];
+"use client";
 
-export function SalesSummary() {
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import type {
+  SalesTrendPoint,
+} from "@/types/analytics";
+
+const currencyFormatter =
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+
+interface SalesSummaryProps {
+  data: SalesTrendPoint[];
+}
+
+export function SalesSummary({
+  data,
+}: SalesSummaryProps) {
   return (
     <div
-      className="flex h-[190px] items-end gap-3"
-      aria-label="Weekly sales bar chart"
+      className="h-[260px] w-full"
+      aria-label="Revenue trend chart"
     >
-      {sales.map(([day, value]) => (
-        <div
-          className="relative min-h-5 flex-1 bg-indigo-500"
-          style={{ height: `${value}%` }}
-          key={day}
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+      >
+        <AreaChart
+          data={data}
+          margin={{
+            top: 15,
+            right: 15,
+            left: 0,
+            bottom: 0,
+          }}
         >
-          <span>{day}</span>
-        </div>
-      ))}
+          <CartesianGrid
+            strokeDasharray="4 4"
+            vertical={false}
+          />
+
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            minTickGap={24}
+          />
+
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            width={70}
+            tickFormatter={(value) =>
+              currencyFormatter.format(
+                Number(value),
+              )
+            }
+          />
+
+          <Tooltip
+            formatter={(value) => [
+              currencyFormatter.format(
+                Number(value),
+              ),
+              "Revenue",
+            ]}
+          />
+
+          <Area
+            type="monotone"
+            dataKey="revenue"
+            stroke="#4338ca"
+            fill="#c7d2fe"
+            strokeWidth={3}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
