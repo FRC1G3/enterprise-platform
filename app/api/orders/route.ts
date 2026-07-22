@@ -6,6 +6,13 @@
 import { requireAuthenticatedApi } from "@/lib/auth/guards";
 
 import {
+  createRateLimitResponse,
+  consumeRequestRateLimit,
+  getRateLimitHeaders,
+  RATE_LIMIT_POLICIES,
+} from "@/lib/security/rate-limit";
+
+import {
   createOrder,
   EmptyCartError,
   listOrdersForUser,
@@ -61,6 +68,22 @@ export async function POST(
     return authorization.response;
   }
 
+  const rateLimit =
+    await consumeRequestRateLimit(
+      request,
+      RATE_LIMIT_POLICIES.orderCreation,
+      authorization.user.id,
+    );
+
+  if (!rateLimit.allowed) {
+    return createRateLimitResponse(
+      rateLimit,
+    );
+  }
+
+  const rateLimitHeaders =
+    getRateLimitHeaders(rateLimit);
+
   let body: unknown;
 
   try {
@@ -74,6 +97,7 @@ export async function POST(
       },
       {
         status: 400,
+        headers: rateLimitHeaders,
       },
     );
   }
@@ -93,6 +117,7 @@ export async function POST(
       },
       {
         status: 400,
+        headers: rateLimitHeaders,
       },
     );
   }
@@ -113,6 +138,7 @@ export async function POST(
       },
       {
         status: 201,
+        headers: rateLimitHeaders,
       },
     );
   } catch (error) {
@@ -124,6 +150,7 @@ export async function POST(
         },
         {
           status: 400,
+          headers: rateLimitHeaders,
         },
       );
     }
@@ -144,6 +171,7 @@ export async function POST(
         },
         {
           status: 409,
+          headers: rateLimitHeaders,
         },
       );
     }
@@ -161,6 +189,7 @@ export async function POST(
       },
       {
         status: 500,
+        headers: rateLimitHeaders,
       },
     );
   }
