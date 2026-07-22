@@ -1,33 +1,105 @@
 ﻿"use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
 
 import {
-  CategorySalesChart,
-  CustomerGrowthChart,
-  OrderStatusChart,
-} from "@/components/dashboard/AnalyticsCharts";
+  useState,
+} from "react";
 
-import { SalesSummary } from "@/components/dashboard/SalesSummary";
-import { StatCard } from "@/components/dashboard/StatCard";
+import {
+  StatCard,
+} from "@/components/dashboard/StatCard";
 
 import {
   type AnalyticsPeriod,
   useAnalytics,
 } from "@/hooks/useAnalytics";
 
+function ChartLoading() {
+  return (
+    <div className="grid h-[280px] place-items-center rounded-lg bg-slate-50 text-sm text-slate-500">
+      Loading chart...
+    </div>
+  );
+}
+
+const SalesSummary = dynamic(
+  () =>
+    import(
+      "@/components/dashboard/SalesSummary"
+    ).then(
+      (module) =>
+        module.SalesSummary,
+    ),
+  {
+    loading: ChartLoading,
+  },
+);
+
+const CustomerGrowthChart =
+  dynamic(
+    () =>
+      import(
+        "@/components/dashboard/AnalyticsCharts"
+      ).then(
+        (module) =>
+          module.CustomerGrowthChart,
+      ),
+    {
+      loading: ChartLoading,
+    },
+  );
+
+const CategorySalesChart =
+  dynamic(
+    () =>
+      import(
+        "@/components/dashboard/AnalyticsCharts"
+      ).then(
+        (module) =>
+          module.CategorySalesChart,
+      ),
+    {
+      loading: ChartLoading,
+    },
+  );
+
+const OrderStatusChart =
+  dynamic(
+    () =>
+      import(
+        "@/components/dashboard/AnalyticsCharts"
+      ).then(
+        (module) =>
+          module.OrderStatusChart,
+      ),
+    {
+      loading: ChartLoading,
+    },
+  );
+
 const currencyFormatter =
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
+  new Intl.NumberFormat(
+    "en-US",
+    {
+      style: "currency",
+      currency: "USD",
+    },
+  );
 
 const numberFormatter =
-  new Intl.NumberFormat("en-US");
+  new Intl.NumberFormat(
+    "en-US",
+  );
 
 export default function AdminAnalyticsPage() {
-  const [period, setPeriod] =
-    useState<AnalyticsPeriod>(30);
+  const [
+    period,
+    setPeriod,
+  ] =
+    useState<AnalyticsPeriod>(
+      30,
+    );
 
   const {
     analytics,
@@ -89,12 +161,13 @@ export default function AdminAnalyticsPage() {
 
       {error && (
         <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-          Analytics could not be loaded.{" "}
-          {error.message}
+          Analytics could not be
+          loaded. {error.message}
         </div>
       )}
 
-      {isLoading || !analytics ? (
+      {isLoading ||
+      !analytics ? (
         <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500">
           Loading analytics...
         </div>
@@ -104,11 +177,12 @@ export default function AdminAnalyticsPage() {
             <StatCard
               label="Revenue"
               value={currencyFormatter.format(
-                analytics.summary.revenue
-                  .value,
+                analytics.summary
+                  .revenue.value,
               )}
               changePercentage={
-                analytics.summary.revenue
+                analytics.summary
+                  .revenue
                   .changePercentage
               }
             />
@@ -116,11 +190,12 @@ export default function AdminAnalyticsPage() {
             <StatCard
               label="Orders"
               value={numberFormatter.format(
-                analytics.summary.orders
-                  .value,
+                analytics.summary
+                  .orders.value,
               )}
               changePercentage={
-                analytics.summary.orders
+                analytics.summary
+                  .orders
                   .changePercentage
               }
             />
@@ -128,11 +203,12 @@ export default function AdminAnalyticsPage() {
             <StatCard
               label="New customers"
               value={numberFormatter.format(
-                analytics.summary.customers
-                  .value,
+                analytics.summary
+                  .customers.value,
               )}
               changePercentage={
-                analytics.summary.customers
+                analytics.summary
+                  .customers
                   .changePercentage
               }
             />
@@ -141,7 +217,8 @@ export default function AdminAnalyticsPage() {
               label="Average order value"
               value={currencyFormatter.format(
                 analytics.summary
-                  .averageOrderValue.value,
+                  .averageOrderValue
+                  .value,
               )}
               changePercentage={
                 analytics.summary
@@ -196,7 +273,9 @@ export default function AdminAnalyticsPage() {
           </div>
 
           <section className="mt-5 rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-            <h2>Top-selling products</h2>
+            <h2>
+              Top-selling products
+            </h2>
 
             <div className="overflow-auto">
               <table className="w-full min-w-[650px] border-collapse [&_td]:border-b [&_td]:border-slate-200 [&_td]:px-4 [&_td]:py-3.5 [&_td]:text-left [&_th]:border-b [&_th]:border-slate-200 [&_th]:bg-slate-50 [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-left [&_th]:text-slate-500">
@@ -210,52 +289,56 @@ export default function AdminAnalyticsPage() {
                 </thead>
 
                 <tbody>
-                  {analytics.topProducts
+                  {analytics
+                    .topProducts
                     .length === 0 ? (
                     <tr>
                       <td
                         colSpan={4}
                         className="text-center text-slate-500"
                       >
-                        No product sales for
-                        this period.
+                        No product sales
+                        for this period.
                       </td>
                     </tr>
                   ) : (
-                    analytics.topProducts.map(
-                      (
-                        product,
-                        index,
-                      ) => (
-                        <tr
-                          key={`${product.productId}-${product.productName}`}
-                        >
-                          <td>
-                            #{index + 1}
-                          </td>
+                    analytics
+                      .topProducts
+                      .map(
+                        (
+                          product,
+                          index,
+                        ) => (
+                          <tr
+                            key={`${product.productId}-${product.productName}`}
+                          >
+                            <td>
+                              #
+                              {index + 1}
+                            </td>
 
-                          <td>
-                            <strong>
+                            <td>
+                              <strong>
+                                {
+                                  product.productName
+                                }
+                              </strong>
+                            </td>
+
+                            <td>
                               {
-                                product.productName
+                                product.quantity
                               }
-                            </strong>
-                          </td>
+                            </td>
 
-                          <td>
-                            {
-                              product.quantity
-                            }
-                          </td>
-
-                          <td>
-                            {currencyFormatter.format(
-                              product.revenue,
-                            )}
-                          </td>
-                        </tr>
-                      ),
-                    )
+                            <td>
+                              {currencyFormatter.format(
+                                product.revenue,
+                              )}
+                            </td>
+                          </tr>
+                        ),
+                      )
                   )}
                 </tbody>
               </table>

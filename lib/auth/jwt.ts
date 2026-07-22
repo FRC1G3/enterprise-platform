@@ -1,21 +1,32 @@
-﻿import { jwtVerify, SignJWT } from "jose";
+﻿import {
+  jwtVerify,
+  SignJWT,
+} from "jose";
 
 import type {
   AuthSession,
   UserRole,
+  VerifiedAuthSession,
 } from "@/types/auth";
 
-const JWT_ISSUER = "nova-enterprise-platform";
-const JWT_AUDIENCE = "nova-platform-users";
+const JWT_ISSUER =
+  "nova-enterprise-platform";
 
-type TokenLifetime = "1d" | "7d";
+const JWT_AUDIENCE =
+  "nova-platform-users";
+
+type TokenLifetime =
+  | "1d"
+  | "7d";
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
+  const secret =
+    process.env.JWT_SECRET;
 
   if (
     !secret ||
-    secret === "replace-with-a-secure-secret" ||
+    secret ===
+      "replace-with-a-secure-secret" ||
     secret.length < 32
   ) {
     throw new Error(
@@ -23,20 +34,31 @@ function getJwtSecret(): Uint8Array {
     );
   }
 
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(
+    secret,
+  );
 }
 
-function isUserRole(value: unknown): value is UserRole {
-  return value === "USER" || value === "ADMIN";
+function isUserRole(
+  value: unknown,
+): value is UserRole {
+  return (
+    value === "USER" ||
+    value === "ADMIN"
+  );
 }
 
 export async function createSessionToken(
   session: AuthSession,
-  expiresIn: TokenLifetime,
+  rememberMe: boolean,
 ): Promise<string> {
+  const expiresIn: TokenLifetime =
+    rememberMe ? "7d" : "1d";
+
   return new SignJWT({
     email: session.email,
     role: session.role,
+    rememberMe,
   })
     .setProtectedHeader({
       alg: "HS256",
@@ -52,22 +74,31 @@ export async function createSessionToken(
 
 export async function verifySessionToken(
   token: string,
-): Promise<AuthSession | null> {
+): Promise<VerifiedAuthSession | null> {
   try {
-    const { payload } = await jwtVerify(
-      token,
-      getJwtSecret(),
-      {
-        issuer: JWT_ISSUER,
-        audience: JWT_AUDIENCE,
-        algorithms: ["HS256"],
-      },
-    );
+    const { payload } =
+      await jwtVerify(
+        token,
+        getJwtSecret(),
+        {
+          issuer: JWT_ISSUER,
+          audience: JWT_AUDIENCE,
+
+          algorithms: [
+            "HS256",
+          ],
+        },
+      );
 
     if (
       !payload.sub ||
-      typeof payload.email !== "string" ||
-      !isUserRole(payload.role)
+      typeof payload.email !==
+        "string" ||
+      !isUserRole(payload.role) ||
+      typeof payload.iat !==
+        "number" ||
+      typeof payload.exp !==
+        "number"
     ) {
       return null;
     }
@@ -76,6 +107,12 @@ export async function verifySessionToken(
       userId: payload.sub,
       email: payload.email,
       role: payload.role,
+
+      rememberMe:
+        payload.rememberMe === true,
+
+      issuedAt: payload.iat,
+      expiresAt: payload.exp,
     };
   } catch {
     return null;

@@ -7,18 +7,27 @@ import {
   apiFetcher,
 } from "@/lib/swr/fetcher";
 
-import type { AuthResult } from "@/types/auth";
+import type {
+  AuthResult,
+} from "@/types/auth";
 
-export const AUTH_ME_KEY = "/api/auth/me";
+export const AUTH_ME_KEY =
+  "/api/auth/me";
+
+const SESSION_CHECK_INTERVAL =
+  15 * 60 * 1000;
 
 async function currentUserFetcher(
   url: string,
 ): Promise<AuthResult | null> {
   try {
-    return await apiFetcher<AuthResult>(url);
+    return await apiFetcher<AuthResult>(
+      url,
+    );
   } catch (error) {
     if (
-      error instanceof ApiRequestError &&
+      error instanceof
+        ApiRequestError &&
       error.status === 401
     ) {
       return null;
@@ -35,22 +44,44 @@ export function useAuth() {
     isLoading,
     isValidating,
     mutate,
-  } = useSWR<AuthResult | null, Error>(
+  } = useSWR<
+    AuthResult | null,
+    Error
+  >(
     AUTH_ME_KEY,
     currentUserFetcher,
     {
       revalidateOnFocus: true,
-      shouldRetryOnError: false,
+
+      revalidateOnReconnect:
+        true,
+
+      refreshInterval:
+        SESSION_CHECK_INTERVAL,
+
+      refreshWhenHidden:
+        false,
+
+      refreshWhenOffline:
+        false,
     },
   );
 
   return {
     data,
-    user: data?.user ?? null,
-    isAuthenticated: Boolean(data?.user),
+
+    user:
+      data?.user ?? null,
+
+    isAuthenticated:
+      Boolean(data?.user),
+
     isLoading,
     isValidating,
-    error: error ?? null,
+
+    error:
+      error ?? null,
+
     mutate,
   };
 }

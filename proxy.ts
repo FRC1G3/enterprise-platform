@@ -14,6 +14,22 @@ const PROTECTED_PAGE_PREFIXES = [
   "/cart",
 ];
 
+const PRIVATE_API_PREFIXES = [
+  "/api/auth",
+  "/api/cart",
+  "/api/orders",
+  "/api/admin",
+  "/api/inventory",
+];
+
+const UNSAFE_HTTP_METHODS =
+  new Set([
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+  ]);
+
 const CORS_ALLOWED_METHODS = [
   "GET",
   "POST",
@@ -35,7 +51,10 @@ function getConfiguredOrigins(): string[] {
       .CORS_ALLOWED_ORIGINS ?? ""
   )
     .split(",")
-    .map((origin) => origin.trim())
+    .map(
+      (origin) =>
+        origin.trim(),
+    )
     .filter(Boolean);
 }
 
@@ -44,7 +63,8 @@ function isAllowedOrigin(
   origin: string,
 ): boolean {
   if (
-    origin === request.nextUrl.origin
+    origin ===
+    request.nextUrl.origin
   ) {
     return true;
   }
@@ -103,6 +123,16 @@ function addSecurityHeaders(
   );
 
   response.headers.set(
+    "X-DNS-Prefetch-Control",
+    "off",
+  );
+
+  response.headers.set(
+    "X-Permitted-Cross-Domain-Policies",
+    "none",
+  );
+
+  response.headers.set(
     "Referrer-Policy",
     "strict-origin-when-cross-origin",
   );
@@ -111,6 +141,21 @@ function addSecurityHeaders(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   );
+
+  response.headers.set(
+    "Cross-Origin-Opener-Policy",
+    "same-origin",
+  );
+
+  if (
+    process.env.NODE_ENV ===
+    "production"
+  ) {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
+  }
 }
 
 function isProtectedPage(
@@ -125,6 +170,48 @@ function isProtectedPage(
   );
 }
 
+function isPrivateApi(
+  pathname: string,
+): boolean {
+  return PRIVATE_API_PREFIXES.some(
+    (prefix) =>
+      pathname === prefix ||
+      pathname.startsWith(
+        `${prefix}/`,
+      ),
+  );
+}
+
+function isCrossSiteMutation(
+  request: NextRequest,
+): boolean {
+  if (
+    !UNSAFE_HTTP_METHODS.has(
+      request.method,
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    request.headers.get(
+      "sec-fetch-site",
+    ) === "cross-site"
+  );
+}
+
+function applyPrivateCachePolicy(
+  response: NextResponse,
+  pathname: string,
+): void {
+  if (isPrivateApi(pathname)) {
+    response.headers.set(
+      "Cache-Control",
+      "private, no-store",
+    );
+  }
+}
+
 export function proxy(
   request: NextRequest,
 ) {
@@ -136,6 +223,28 @@ export function proxy(
 
   const origin =
     request.headers.get("origin");
+
+  if (
+    isApiRequest &&
+    isCrossSiteMutation(request)
+  ) {
+    const response =
+      NextResponse.json(
+        {
+          success: false,
+
+          message:
+            "Cross-site API mutations are not permitted.",
+        },
+        {
+          status: 403,
+        },
+      );
+
+    addSecurityHeaders(response);
+
+    return response;
+  }
 
   if (
     isApiRequest &&
@@ -165,7 +274,8 @@ export function proxy(
 
   if (
     isApiRequest &&
-    request.method === "OPTIONS"
+    request.method ===
+      "OPTIONS"
   ) {
     const response =
       new NextResponse(null, {
@@ -180,6 +290,11 @@ export function proxy(
     }
 
     addSecurityHeaders(response);
+
+    applyPrivateCachePolicy(
+      response,
+      pathname,
+    );
 
     return response;
   }
@@ -226,6 +341,11 @@ export function proxy(
   }
 
   addSecurityHeaders(response);
+
+  applyPrivateCachePolicy(
+    response,
+    pathname,
+  );
 
   return response;
 }

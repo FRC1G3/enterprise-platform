@@ -1,9 +1,18 @@
-export type UserRole = "USER" | "ADMIN";
+export type UserRole =
+  | "USER"
+  | "ADMIN";
 
 export interface AuthSession {
   userId: string;
   email: string;
   role: UserRole;
+}
+
+export interface VerifiedAuthSession
+  extends AuthSession {
+  rememberMe: boolean;
+  issuedAt: number;
+  expiresAt: number;
 }
 
 export interface AuthUser {

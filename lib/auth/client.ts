@@ -3,9 +3,15 @@ import type {
   ApiValidationErrors,
 } from "@/types/api";
 
+const MUTATION_TIMEOUT_MS =
+  15_000;
+
 export class AuthRequestError extends Error {
   status: number;
-  fieldErrors: ApiValidationErrors["fieldErrors"];
+
+  fieldErrors:
+    ApiValidationErrors["fieldErrors"];
+
   formErrors: string[];
 
   constructor(
@@ -15,35 +21,93 @@ export class AuthRequestError extends Error {
   ) {
     super(message);
 
-    this.name = "AuthRequestError";
+    this.name =
+      "AuthRequestError";
+
     this.status = status;
-    this.fieldErrors = errors?.fieldErrors ?? {};
-    this.formErrors = errors?.formErrors ?? [];
+
+    this.fieldErrors =
+      errors?.fieldErrors ?? {};
+
+    this.formErrors =
+      errors?.formErrors ?? [];
   }
+}
+
+function isAbortError(
+  error: unknown,
+): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AbortError"
+  );
 }
 
 export async function authRequest<T>(
   url: string,
-  init: RequestInit,
+  init: RequestInit = {},
 ): Promise<ApiResponse<T>> {
-  const headers = new Headers(init.headers);
+  const controller =
+    new AbortController();
 
-  headers.set("Accept", "application/json");
+  const timeoutId =
+    setTimeout(() => {
+      controller.abort();
+    }, MUTATION_TIMEOUT_MS);
+
+  const headers =
+    new Headers(init.headers);
+
+  headers.set(
+    "Accept",
+    "application/json",
+  );
 
   if (init.body) {
-    headers.set("Content-Type", "application/json");
+    headers.set(
+      "Content-Type",
+      "application/json",
+    );
   }
 
-  const response = await fetch(url, {
-    ...init,
-    headers,
-    credentials: "same-origin",
-  });
-
-  let payload: ApiResponse<T>;
+  let response: Response;
 
   try {
-    payload = (await response.json()) as ApiResponse<T>;
+    response = await fetch(url, {
+      ...init,
+
+      headers,
+
+      credentials:
+        "same-origin",
+
+      signal:
+        controller.signal,
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new AuthRequestError(
+        "The request timed out. Your changes may not have been saved.",
+        408,
+      );
+    }
+
+    throw new AuthRequestError(
+      "The server could not be reached. Check your connection and try again.",
+      0,
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  let payload:
+    ApiResponse<T>;
+
+  try {
+    payload =
+      (await response.json()) as ApiResponse<T>;
   } catch {
     throw new AuthRequestError(
       "Server returned an invalid response.",
@@ -51,9 +115,14 @@ export async function authRequest<T>(
     );
   }
 
-  if (!response.ok || !payload.success) {
+  if (
+    !response.ok ||
+    !payload.success
+  ) {
     throw new AuthRequestError(
-      payload.message ?? "Request could not be completed.",
+      payload.message ??
+        "Request could not be completed.",
+
       response.status,
       payload.errors,
     );
