@@ -87,7 +87,7 @@ export function Footer() {
             />
             <button
               className="inline-flex min-h-[42px] items-center justify-center rounded-lg bg-indigo-800 px-[17px] py-2.5 font-bold text-white"
-              type="submit"
+              type="button"
             >
               Subscribe
             </button>

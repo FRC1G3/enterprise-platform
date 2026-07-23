@@ -2,6 +2,7 @@
 
 import {
   type FormEvent,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -77,6 +78,9 @@ export function CheckoutForm({
 
   const [fieldErrors, setFieldErrors] =
     useState<CheckoutFieldErrors>({});
+
+  const idempotencyKeyRef =
+    useRef<string | null>(null);
 
   const defaultCountry =
     countryOptions.some(
@@ -201,11 +205,23 @@ export function CheckoutForm({
     setFieldErrors({});
 
     try {
+      const idempotencyKey =
+        idempotencyKeyRef.current ??
+        crypto.randomUUID();
+
+      idempotencyKeyRef.current =
+        idempotencyKey;
+
       const response =
         await authRequest<Order>(
           "/api/orders",
           {
             method: "POST",
+
+            headers: {
+              "Idempotency-Key":
+                idempotencyKey,
+            },
 
             body: JSON.stringify(
               validationResult.data,
@@ -220,6 +236,9 @@ export function CheckoutForm({
       }
 
       await mutate(CART_KEY);
+
+      idempotencyKeyRef.current =
+        null;
 
       router.replace(
         `/orders/${response.data.id}`,

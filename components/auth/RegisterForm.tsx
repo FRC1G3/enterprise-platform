@@ -149,8 +149,8 @@ export function RegisterForm() {
         <h1>Create your account</h1>
 
         <p className="leading-7 text-slate-500">
-          Save favorites and make checkout easier.
-        </p>
+  Create an account to track orders and make checkout easier.
+</p>
       </div>
 
       <Input

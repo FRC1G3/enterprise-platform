@@ -2,17 +2,31 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+
+import {
+  useMemo,
+  useState,
+} from "react";
 
 import { Button } from "@/components/ui/Button";
-import { ProductList } from "@/components/products/ProductList";
 
 import { useCart } from "@/hooks/useCart";
 
-import { AuthRequestError } from "@/lib/auth/client";
-import { useAuthContext } from "@/lib/contexts/AuthContext";
+import {
+  AuthRequestError,
+} from "@/lib/auth/client";
 
-import type { Product } from "@/types/product";
+import {
+  useAuthContext,
+} from "@/lib/contexts/AuthContext";
+
+import type {
+  Product,
+} from "@/types/product";
+
+import {
+  ProductList,
+} from "./ProductList";
 
 type ProductDetailsProps = {
   product: Product;
@@ -40,75 +54,175 @@ export function ProductDetails({
     isLoading: isAuthLoading,
   } = useAuthContext();
 
-  const { addItem } = useCart(
-    isAuthenticated,
-  );
+  const {
+    cart,
+    addItem,
+  } = useCart(isAuthenticated);
 
-  const productImages =
+  const galleryImages =
     product.images.length > 0
       ? product.images
       : [product.image];
 
-  const [image, setImage] = useState(
-    product.image,
-  );
+  const [image, setImage] =
+    useState(product.image);
 
-  const [size, setSize] = useState(
-    product.sizes[0] ?? "",
-  );
+  const [size, setSize] =
+    useState(
+      product.sizes[0] ?? "",
+    );
 
-  const [color, setColor] = useState(
-    product.colors[0] ?? "",
-  );
+  const [color, setColor] =
+    useState(
+      product.colors[0] ?? "",
+    );
 
   const [quantity, setQuantity] =
     useState(1);
 
-  const [pendingAction, setPendingAction] =
-    useState<PendingAction>(null);
+  const [
+    pendingAction,
+    setPendingAction,
+  ] = useState<PendingAction>(
+    null,
+  );
 
   const [feedback, setFeedback] =
     useState<Feedback>(null);
 
+  const quantityAlreadyInCart =
+    useMemo(() => {
+      return (
+        cart?.items
+          .filter(
+            (item) =>
+              item.product.id ===
+              product.id,
+          )
+          .reduce(
+            (total, item) =>
+              total +
+              item.quantity,
+            0,
+          ) ?? 0
+      );
+    }, [
+      cart?.items,
+      product.id,
+    ]);
+
+  const remainingStock =
+    Math.max(
+      0,
+
+      product.stock -
+        quantityAlreadyInCart,
+    );
+
+  const stockLimitReached =
+    remainingStock <= 0;
+
+  const quantityToAdd =
+    stockLimitReached
+      ? 1
+      : Math.min(
+          Math.max(quantity, 1),
+          remainingStock,
+        );
+
+  const isUnavailable =
+    !product.isActive ||
+    product.stock <= 0;
+
   async function addProductToCart(
-    destination: "cart" | "checkout",
+    action: Exclude<
+      PendingAction,
+      null
+    >,
   ) {
     if (!isAuthenticated) {
-      router.push("/login");
+      router.push(
+        `/login?next=/products/${product.slug}`,
+      );
+
       return;
     }
 
-    setPendingAction(destination);
+    if (
+      isUnavailable ||
+      stockLimitReached
+    ) {
+      setFeedback({
+        type: "error",
+
+        message:
+          `You already have the maximum available quantity of this product in your cart.`,
+      });
+
+      return;
+    }
+
+    if (
+      quantityToAdd >
+      remainingStock
+    ) {
+      setFeedback({
+        type: "error",
+
+        message:
+          `Only ${remainingStock} more unit${
+            remainingStock === 1
+              ? ""
+              : "s"
+          } can be added.`,
+      });
+
+      return;
+    }
+
+    setPendingAction(action);
     setFeedback(null);
 
     try {
       await addItem({
         productId: product.id,
-        quantity,
+
+        quantity: quantityToAdd,
 
         selectedColor:
-          product.colors.length > 0
+          product.colors.length >
+          0
             ? color
             : null,
 
         selectedSize:
-          product.sizes.length > 0
+          product.sizes.length >
+          0
             ? size
             : null,
       });
 
-      if (destination === "checkout") {
+      if (
+        action === "checkout"
+      ) {
         router.push("/checkout");
+
         return;
       }
 
       setFeedback({
         type: "success",
+
         message:
-          "Product added to your cart.",
+          "Product added to cart.",
       });
+
+      setQuantity(1);
     } catch (error) {
-      if (error instanceof AuthRequestError) {
+      if (
+        error instanceof
+        AuthRequestError
+      ) {
         if (error.status === 401) {
           router.push("/login");
           return;
@@ -120,12 +234,13 @@ export function ProductDetails({
         });
       } else {
         console.error(
-          "Add to cart error:",
+          "Product add to cart error:",
           error,
         );
 
         setFeedback({
           type: "error",
+
           message:
             "Product could not be added to cart.",
         });
@@ -134,10 +249,6 @@ export function ProductDetails({
       setPendingAction(null);
     }
   }
-
-  const isOutOfStock =
-    product.stock <= 0 ||
-    !product.isActive;
 
   return (
     <>
@@ -155,8 +266,11 @@ export function ProductDetails({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2.5">
-            {productImages.map(
-              (source, index) => (
+            {galleryImages.map(
+              (
+                source,
+                index,
+              ) => (
                 <button
                   className={`h-[92px] w-[78px] border-2 p-0 ${
                     image === source
@@ -166,7 +280,7 @@ export function ProductDetails({
                   onClick={() =>
                     setImage(source)
                   }
-                  key={`${source}-${index}`}
+                  key={source}
                   type="button"
                   aria-label={`View image ${
                     index + 1
@@ -196,21 +310,23 @@ export function ProductDetails({
 
           <div className="text-[0.8rem] text-yellow-700">
             ★★★★★{" "}
+
             <span className="leading-7 text-slate-500">
               {product.rating} ·{" "}
-              {product.reviewCount} reviews
+              {product.reviewCount}{" "}
+              reviews
             </span>
           </div>
 
           <div className="my-[18px] text-[1.7rem] font-black">
-            ${product.price.toFixed(2)}{" "}
+            ${product.price}{" "}
 
             {product.originalPrice && (
               <span className="text-[0.88rem] text-slate-400 line-through">
                 $
-                {product.originalPrice.toFixed(
-                  2,
-                )}
+                {
+                  product.originalPrice
+                }
               </span>
             )}
           </div>
@@ -219,7 +335,8 @@ export function ProductDetails({
             {product.description}
           </p>
 
-          {product.colors.length > 0 && (
+          {product.colors.length >
+            0 && (
             <div className="border-t border-slate-200 py-5">
               <div className="flex items-center justify-between gap-3">
                 <strong>Color</strong>
@@ -239,9 +356,11 @@ export function ProductDetails({
                           : "border-slate-300"
                       }`}
                       type="button"
-                      onClick={() =>
-                        setColor(value)
-                      }
+                      onClick={() => {
+  setColor(value);
+  setQuantity(1);
+  setFeedback(null);
+}}
                       key={value}
                     >
                       {value}
@@ -252,7 +371,8 @@ export function ProductDetails({
             </div>
           )}
 
-          {product.sizes.length > 0 && (
+          {product.sizes.length >
+            0 && (
             <div className="border-t border-slate-200 py-5">
               <div className="flex items-center justify-between gap-3">
                 <strong>Size</strong>
@@ -272,9 +392,11 @@ export function ProductDetails({
                           : "border-slate-300"
                       }`}
                       type="button"
-                      onClick={() =>
-                        setSize(value)
-                      }
+                      onClick={() => {
+  setSize(value);
+  setQuantity(1);
+  setFeedback(null);
+}}
                       key={value}
                     >
                       {value}
@@ -288,23 +410,29 @@ export function ProductDetails({
           <div className="border-t border-slate-200 py-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <strong>Quantity</strong>
+                <strong>
+                  Quantity
+                </strong>
 
                 <div className="mt-2.5 flex w-max border border-slate-300">
                   <button
                     className="grid h-[42px] w-10 place-items-center bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     type="button"
-                    disabled={
-                      quantity <= 1 ||
-                      isOutOfStock
-                    }
                     onClick={() =>
-                      setQuantity((current) =>
-                        Math.max(
-                          1,
-                          current - 1,
-                        ),
+                      setQuantity(
+                        (current) =>
+                          Math.max(
+                            1,
+                            Math.min(
+                              current,
+                              remainingStock,
+                            ) - 1,
+                          ),
                       )
+                    }
+                    disabled={
+                      quantityToAdd <= 1 ||
+                      stockLimitReached
                     }
                     aria-label="Decrease quantity"
                   >
@@ -312,23 +440,28 @@ export function ProductDetails({
                   </button>
 
                   <span className="grid h-[42px] w-10 place-items-center">
-                    {quantity}
+                    {quantityToAdd}
                   </span>
 
                   <button
                     className="grid h-[42px] w-10 place-items-center bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     type="button"
                     onClick={() =>
-                      setQuantity((current) =>
-                        Math.min(
-                          product.stock,
-                          current + 1,
-                        ),
+                      setQuantity(
+                        (current) =>
+                          Math.min(
+                            remainingStock,
+                            Math.min(
+                              current,
+                              remainingStock,
+                            ) + 1,
+                          ),
                       )
                     }
                     disabled={
-                      quantity >= product.stock ||
-                      isOutOfStock
+                      stockLimitReached ||
+                      quantityToAdd >=
+                        remainingStock
                     }
                     aria-label="Increase quantity"
                   >
@@ -337,61 +470,73 @@ export function ProductDetails({
                 </div>
               </div>
 
-              <span
-                className={`inline-flex rounded-md px-[9px] py-[5px] text-[0.72rem] font-extrabold ${
-                  isOutOfStock
-                    ? "bg-red-50 text-red-700"
-                    : product.stock < 8
-                      ? "bg-amber-50 text-amber-700"
-                      : "bg-emerald-50 text-emerald-700"
-                }`}
-              >
-                {isOutOfStock
-                  ? "Out of stock"
-                  : `${product.stock} in stock`}
-              </span>
+              <div className="text-right">
+                <span
+                  className={`inline-flex rounded-md px-[9px] py-[5px] text-[0.72rem] font-extrabold ${
+                    stockLimitReached ||
+                    isUnavailable
+                      ? "bg-red-50 text-red-700"
+                      : remainingStock < 8
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  {isUnavailable
+                    ? "Out of stock"
+                    : stockLimitReached
+                      ? "Stock limit reached"
+                      : `${remainingStock} available to add`}
+                </span>
+
+                {quantityAlreadyInCart >
+                  0 && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    {
+                      quantityAlreadyInCart
+                    }{" "}
+                    already in your cart
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-
-          {feedback && (
-            <div
-              className={`mb-3 rounded-lg p-3 text-sm ${
-                feedback.type === "success"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-red-50 text-red-700"
-              }`}
-              role="alert"
-            >
-              {feedback.message}
-            </div>
-          )}
 
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <Button
               size="lg"
-              disabled={
-                isOutOfStock ||
-                isAuthLoading
-              }
               loading={
-                pendingAction === "cart"
+                pendingAction ===
+                "cart"
+              }
+              disabled={
+                isAuthLoading ||
+                isUnavailable ||
+                stockLimitReached ||
+                pendingAction !== null
               }
               onClick={() =>
-                void addProductToCart("cart")
+                void addProductToCart(
+                  "cart",
+                )
               }
             >
-              Add to cart
+              {stockLimitReached
+                ? "Stock limit reached"
+                : "Add to cart"}
             </Button>
 
             <Button
               size="lg"
               variant="secondary"
-              disabled={
-                isOutOfStock ||
-                isAuthLoading
-              }
               loading={
-                pendingAction === "checkout"
+                pendingAction ===
+                "checkout"
+              }
+              disabled={
+                isAuthLoading ||
+                isUnavailable ||
+                stockLimitReached ||
+                pendingAction !== null
               }
               onClick={() =>
                 void addProductToCart(
@@ -403,16 +548,27 @@ export function ProductDetails({
             </Button>
           </div>
 
-          <Button
-            variant="ghost"
-            className="mt-2 w-full"
-          >
-            ♡ Add to wishlist
-          </Button>
+          {feedback && (
+            <div
+              className={`mt-3 rounded-lg border p-3 text-sm ${
+                feedback.type ===
+                "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
+              role="alert"
+            >
+              {feedback.message}
+            </div>
+          )}
+
+
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="bg-slate-50 p-[15px]">
-              <strong>Free shipping</strong>
+              <strong>
+                Free shipping
+              </strong>
 
               <div className="leading-7 text-slate-500">
                 On orders above $100
@@ -420,7 +576,9 @@ export function ProductDetails({
             </div>
 
             <div className="bg-slate-50 p-[15px]">
-              <strong>Easy returns</strong>
+              <strong>
+                Easy returns
+              </strong>
 
               <div className="leading-7 text-slate-500">
                 Within 30 days
@@ -432,20 +590,23 @@ export function ProductDetails({
             <h3>Product details</h3>
 
             <p className="leading-7 text-slate-500">
-              Premium materials · Designed for
-              everyday wear · SKU {product.sku} ·
+              Premium materials ·
+              Designed for everyday wear
+              · SKU {product.sku} ·
               Thoughtfully finished.
             </p>
           </div>
 
           <div className="border-t border-slate-200 py-5">
             <h3>
-              Reviews ({product.reviewCount})
+              Reviews (
+              {product.reviewCount})
             </h3>
 
             <p className="leading-7 text-slate-500">
-              Customer review content will be
-              available when the review service is
+              Customer review content
+              will be available when the
+              review service is
               connected.
             </p>
           </div>
@@ -465,7 +626,9 @@ export function ProductDetails({
           </div>
         </div>
 
-        <ProductList products={related} />
+        <ProductList
+          products={related}
+        />
       </section>
     </>
   );

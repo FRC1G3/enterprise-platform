@@ -153,13 +153,7 @@ export function ProductCard({
           )}
         </div>
 
-        <button
-          type="button"
-          className="absolute right-3 top-3 inline-grid h-[42px] w-[42px] place-items-center rounded-lg border border-slate-200 bg-white"
-          aria-label={`Add ${product.name} to wishlist`}
-        >
-          ♡
-        </button>
+
       </div>
 
       <div className="px-0.5 py-3.5">

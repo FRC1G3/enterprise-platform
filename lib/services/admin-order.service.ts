@@ -6,6 +6,7 @@ import {
 } from "@/generated/prisma/client";
 
 import prisma from "@/lib/db/prisma";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 
 import type {
   AdminOrderQueryInput,
@@ -102,6 +103,47 @@ const paymentStatusToDatabase: Record<
 
   REFUNDED:
     DatabasePaymentStatus.REFUNDED,
+};
+
+const allowedOrderTransitions: Record<
+  DatabaseOrderStatus,
+  readonly DatabaseOrderStatus[]
+> = {
+  PENDING: [
+    DatabaseOrderStatus.CONFIRMED,
+    DatabaseOrderStatus.PROCESSING,
+    DatabaseOrderStatus.CANCELLED,
+  ],
+  CONFIRMED: [
+    DatabaseOrderStatus.PROCESSING,
+    DatabaseOrderStatus.CANCELLED,
+  ],
+  PROCESSING: [
+    DatabaseOrderStatus.SHIPPED,
+    DatabaseOrderStatus.CANCELLED,
+  ],
+  SHIPPED: [
+    DatabaseOrderStatus.DELIVERED,
+  ],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+const allowedPaymentTransitions: Record<
+  DatabasePaymentStatus,
+  readonly DatabasePaymentStatus[]
+> = {
+  PENDING: [
+    DatabasePaymentStatus.PAID,
+    DatabasePaymentStatus.FAILED,
+  ],
+  PAID: [
+    DatabasePaymentStatus.REFUNDED,
+  ],
+  FAILED: [
+    DatabasePaymentStatus.PENDING,
+  ],
+  REFUNDED: [],
 };
 
 export class AdminOrderNotFoundError extends Error {
@@ -391,7 +433,7 @@ export async function updateAdminOrder(
   input: UpdateAdminOrderInput,
 ): Promise<Order> {
   const updatedOrder =
-    await prisma.$transaction(
+    await runSerializableTransaction(
       async (transaction) => {
         const order =
           await transaction.order.findFirst({
@@ -428,33 +470,104 @@ export async function updateAdminOrder(
               ]
             : order.paymentStatus;
 
-        if (
-          order.status ===
-            DatabaseOrderStatus.CANCELLED &&
-          nextStatus !==
-            DatabaseOrderStatus.CANCELLED
-        ) {
-          throw new AdminOrderTransitionError(
-            "A cancelled order cannot be reopened.",
-          );
-        }
+        const statusChanged =
+          nextStatus !== order.status;
 
         if (
-          order.status ===
-            DatabaseOrderStatus.DELIVERED &&
-          nextStatus ===
-            DatabaseOrderStatus.CANCELLED
+          statusChanged &&
+          !allowedOrderTransitions[
+            order.status
+          ].includes(nextStatus)
         ) {
           throw new AdminOrderTransitionError(
-            "A delivered order cannot be cancelled.",
+            `Order status cannot move from ${order.status} to ${nextStatus}.`,
           );
         }
 
         const isBeingCancelled =
-          order.status !==
-            DatabaseOrderStatus.CANCELLED &&
           nextStatus ===
-            DatabaseOrderStatus.CANCELLED;
+            DatabaseOrderStatus.CANCELLED &&
+          statusChanged;
+
+        if (isBeingCancelled) {
+          if (
+            order.paymentStatus ===
+              DatabasePaymentStatus.PAID
+          ) {
+            if (
+              input.paymentStatus !==
+                undefined &&
+              paymentStatusToDatabase[
+                input.paymentStatus
+              ] !==
+                DatabasePaymentStatus.REFUNDED
+            ) {
+              throw new AdminOrderTransitionError(
+                "A paid order must be refunded when it is cancelled.",
+              );
+            }
+
+            nextPaymentStatus =
+              DatabasePaymentStatus.REFUNDED;
+          }
+        }
+
+        if (
+          order.status ===
+            DatabaseOrderStatus.CANCELLED &&
+          nextPaymentStatus !==
+            order.paymentStatus
+        ) {
+          throw new AdminOrderTransitionError(
+            "Payment status cannot change after an order is cancelled.",
+          );
+        }
+
+        const paymentStatusChanged =
+          nextPaymentStatus !==
+          order.paymentStatus;
+
+        if (
+          paymentStatusChanged &&
+          !allowedPaymentTransitions[
+            order.paymentStatus
+          ].includes(
+            nextPaymentStatus,
+          )
+        ) {
+          throw new AdminOrderTransitionError(
+            `Payment status cannot move from ${order.paymentStatus} to ${nextPaymentStatus}.`,
+          );
+        }
+
+        if (
+          !statusChanged &&
+          !paymentStatusChanged
+        ) {
+          return order;
+        }
+
+        const transition =
+          await transaction.order.updateMany({
+            where: {
+              id: order.id,
+              status: order.status,
+              paymentStatus:
+                order.paymentStatus,
+            },
+
+            data: {
+              status: nextStatus,
+              paymentStatus:
+                nextPaymentStatus,
+            },
+          });
+
+        if (transition.count !== 1) {
+          throw new AdminOrderTransitionError(
+            "Order changed while the update was being processed. Refresh and try again.",
+          );
+        }
 
         if (isBeingCancelled) {
           for (const item of order.items) {
@@ -478,33 +591,20 @@ export async function updateAdminOrder(
               },
             );
           }
-
-          if (
-            order.paymentStatus ===
-              DatabasePaymentStatus.PAID &&
-            input.paymentStatus ===
-              undefined
-          ) {
-            nextPaymentStatus =
-              DatabasePaymentStatus.REFUNDED;
-          }
         }
 
         const savedOrder =
-          await transaction.order.update({
+          await transaction.order.findUnique({
             where: {
               id: order.id,
             },
 
-            data: {
-              status: nextStatus,
-
-              paymentStatus:
-                nextPaymentStatus,
-            },
-
             include: orderInclude,
           });
+
+        if (!savedOrder) {
+          throw new AdminOrderNotFoundError();
+        }
 
         await transaction.activityLog.create({
           data: {

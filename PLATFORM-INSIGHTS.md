@@ -336,6 +336,8 @@ The server verifies that the requested cart item belongs to the authenticated us
 
 This prevents a customer from modifying another customer's cart by guessing an ID.
 
+Each exact color-and-size combination also has a deterministic, non-null variant key. A database unique constraint prevents duplicate exact variants, while different variants keep separate cart-item IDs. When an update collides with an existing variant, the service merges quantities inside the same transaction.
+
 ## 19. Server-Authoritative Cart Totals
 
 The server calculates:
@@ -349,6 +351,8 @@ The server calculates:
 The client displays these values but does not define the final amount.
 
 I learned that prices and financial totals must not be trusted from browser input because browser requests can be modified.
+
+Cart mutations use Serializable Prisma transactions with a bounded three-attempt retry for PostgreSQL serialization conflicts. Validation still sums the product quantity across every variant, so concurrent size or color requests cannot both commit above available stock.
 
 ## 20. Checkout Transaction
 
@@ -370,6 +374,8 @@ When one step fails, Prisma rolls back all steps.
 
 I learned that database transactions are necessary when several writes represent one business operation.
 
+Checkout also requires a user-scoped UUID idempotency key. The key has a database unique constraint, and a repeated request returns the existing order rather than repeating inventory, cart, or audit writes.
+
 ## 21. Race Conditions and Inventory
 
 Two customers could attempt to order the same final product unit.
@@ -381,6 +387,8 @@ The inventory update uses a condition requiring sufficient quantity at update ti
 If the conditional update does not modify exactly one record, the order fails with a stock conflict.
 
 This reduces the risk of overselling during concurrent requests.
+
+Serializable retry is limited to Prisma `P2034` transaction conflicts. Validation, stock, authentication, and other business errors are not retried.
 
 ## 22. Order Snapshots
 
@@ -406,8 +414,10 @@ Examples:
 
 - Cancelled orders cannot be reopened
 - Delivered orders cannot be cancelled
-- Cancelling restores inventory
-- Cancelling a paid order can set payment status to refunded
+- Status changes follow an explicit forward-only transition graph
+- Cancelling restores inventory exactly once through an atomic expected-state transition
+- Cancelling a paid order sets payment status to refunded
+- Refunded orders cannot be moved back to paid
 
 The interface alone does not enforce these rules. They are enforced in the service layer.
 
@@ -598,6 +608,7 @@ Indexes are useful for frequently queried fields such as:
 - Order number
 - User relationships
 - Activity creation time
+- Stable activity and order ordering by creation time and ID
 - Rate-limit expiration
 
 I learned that indexes improve reads but also increase storage and write cost. They should be added according to actual query patterns.
@@ -617,6 +628,8 @@ Prisma provides:
 
 PostgreSQL provides durable relational storage and transaction support.
 
+Migration `20260723090000_concurrency_and_idempotency_protection` adds cart variant and checkout idempotency uniqueness, numeric CHECK constraints, safe legacy variant merging, and stable-ordering indexes.
+
 I learned that generated types improve development safety, but business rules still need explicit service code.
 
 ## 36. Development Challenges
@@ -635,9 +648,13 @@ The delete route requires a cart-item ID, not a product ID.
 
 This distinction was important because one product can appear as a cart line with selected variants.
 
+The final design preserves those line IDs while using a deterministic variant key to prevent duplicate exact variants.
+
 ### Checkout consistency
 
 Checkout needed one transaction so inventory, order records, and cart clearing could not become partially completed.
+
+It also needed a database-backed idempotency key so concurrent delivery of the same checkout intent creates one order.
 
 ### Role changes
 
@@ -678,6 +695,7 @@ I manually tested:
 - Session endpoint
 - ESLint
 - Production build
+- Focused safe concurrency verification for cart stock, variant merging, checkout idempotency, and exactly-once cancellation
 
 The project should later add automated tests.
 

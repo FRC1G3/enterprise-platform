@@ -1,5 +1,13 @@
 ﻿import { z } from "zod";
 
+export const idempotencyKeySchema =
+  z
+    .string()
+    .trim()
+    .uuid(
+      "Idempotency-Key must be a valid UUID.",
+    );
+
 const optionalTextSchema = (
   maximumLength: number,
 ) =>

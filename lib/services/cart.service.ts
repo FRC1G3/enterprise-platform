@@ -1,6 +1,8 @@
 ﻿import { Prisma } from "@/generated/prisma/client";
 
 import prisma from "@/lib/db/prisma";
+import { createCartVariantKey } from "@/lib/cart/variant-key";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 
 import type {
   AddCartItemInput,
@@ -21,15 +23,17 @@ const cartInclude = {
         },
       },
     },
+
     orderBy: {
       createdAt: "asc",
     },
   },
 } satisfies Prisma.CartInclude;
 
-type CartRecord = Prisma.CartGetPayload<{
-  include: typeof cartInclude;
-}>;
+type CartRecord =
+  Prisma.CartGetPayload<{
+    include: typeof cartInclude;
+  }>;
 
 type CartItemRecord =
   CartRecord["items"][number];
@@ -48,14 +52,18 @@ export class CartProductNotFoundError extends Error {
 export class CartItemNotFoundError extends Error {
   constructor() {
     super("Cart item not found.");
-    this.name = "CartItemNotFoundError";
+
+    this.name =
+      "CartItemNotFoundError";
   }
 }
 
 export class CartValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "CartValidationError";
+
+    this.name =
+      "CartValidationError";
   }
 }
 
@@ -65,16 +73,18 @@ export class CartStockError extends Error {
   constructor(availableStock: number) {
     super(
       availableStock > 0
-        ? `Only ${availableStock} ${
+        ? `Only ${availableStock} unit${
             availableStock === 1
-              ? "item is"
-              : "items are"
-          } currently available.`
+              ? " is"
+              : "s are"
+          } available in total across all sizes and colors.`
         : "This product is currently out of stock.",
     );
 
     this.name = "CartStockError";
-    this.availableStock = availableStock;
+
+    this.availableStock =
+      availableStock;
   }
 }
 
@@ -83,7 +93,9 @@ function getAvailableStock(
 ): number {
   return Math.max(
     0,
-    (item.product.inventory?.quantity ?? 0) -
+
+    (item.product.inventory
+      ?.quantity ?? 0) -
       (item.product.inventory
         ?.reservedQuantity ?? 0),
   );
@@ -92,36 +104,56 @@ function getAvailableStock(
 function serializeCartItem(
   item: CartItemRecord,
 ): CartItem {
-  const price = Number(item.product.price);
-  const stock = getAvailableStock(item);
+  const price = Number(
+    item.product.price,
+  );
+
+  const stock =
+    getAvailableStock(item);
 
   return {
     id: item.id,
+
     quantity: item.quantity,
 
-    selectedColor: item.selectedColor,
-    selectedSize: item.selectedSize,
+    selectedColor:
+      item.selectedColor,
+
+    selectedSize:
+      item.selectedSize,
 
     lineTotal: Number(
-      (price * item.quantity).toFixed(2),
+      (
+        price * item.quantity
+      ).toFixed(2),
     ),
 
     product: {
       id: item.product.id,
       name: item.product.name,
       slug: item.product.slug,
+
       price,
+
       image: item.product.image,
 
       stock,
-      colors: item.product.colors,
-      sizes: item.product.sizes,
 
-      isActive: item.product.isActive,
+      colors:
+        item.product.colors,
+
+      sizes:
+        item.product.sizes,
+
+      isActive:
+        item.product.isActive,
     },
 
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
+    createdAt:
+      item.createdAt.toISOString(),
+
+    updatedAt:
+      item.updatedAt.toISOString(),
   };
 }
 
@@ -129,26 +161,31 @@ function serializeCart(
   cart: CartRecord,
 ): Cart {
   const items =
-    cart.items.map(serializeCartItem);
+    cart.items.map(
+      serializeCartItem,
+    );
 
-  const itemCount = items.reduce(
-    (total, item) =>
-      total + item.quantity,
-    0,
-  );
+  const itemCount =
+    items.reduce(
+      (total, item) =>
+        total + item.quantity,
+      0,
+    );
 
   const subtotal = Number(
     items
       .reduce(
         (total, item) =>
-          total + item.lineTotal,
+          total +
+          item.lineTotal,
         0,
       )
       .toFixed(2),
   );
 
   const shipping =
-    subtotal === 0 || subtotal >= 100
+    subtotal === 0 ||
+    subtotal >= 100
       ? 0
       : 12;
 
@@ -185,8 +222,13 @@ function serializeCart(
 }
 
 function resolveProductSelection(
-  value: string | null | undefined,
+  value:
+    | string
+    | null
+    | undefined,
+
   options: string[],
+
   label: "color" | "size",
 ): string | null {
   if (options.length === 0) {
@@ -199,9 +241,11 @@ function resolveProductSelection(
     );
   }
 
-  const matchingOption = options.find(
-    (option) => option === value,
-  );
+  const matchingOption =
+    options.find(
+      (option) =>
+        option === value,
+    );
 
   if (!matchingOption) {
     throw new CartValidationError(
@@ -210,6 +254,44 @@ function resolveProductSelection(
   }
 
   return matchingOption;
+}
+
+async function getCartProductQuantity(
+  transaction:
+    Prisma.TransactionClient,
+
+  cartId: string,
+  productId: string,
+
+  excludedItemId?: string,
+): Promise<number> {
+  const quantityResult =
+    await transaction.cartItem.aggregate(
+      {
+        where: {
+          cartId,
+          productId,
+
+          ...(excludedItemId
+            ? {
+                id: {
+                  not:
+                    excludedItemId,
+                },
+              }
+            : {}),
+        },
+
+        _sum: {
+          quantity: true,
+        },
+      },
+    );
+
+  return (
+    quantityResult._sum
+      .quantity ?? 0
+  );
 }
 
 async function loadCart(
@@ -233,7 +315,8 @@ async function loadCart(
 export async function getCart(
   userId: string,
 ): Promise<Cart> {
-  const cart = await loadCart(userId);
+  const cart =
+    await loadCart(userId);
 
   return serializeCart(cart);
 }
@@ -242,124 +325,177 @@ export async function addCartItem(
   userId: string,
   input: AddCartItemInput,
 ): Promise<Cart> {
-  const cart = await prisma.$transaction(
-    async (transaction) => {
-      const product =
-        await transaction.product.findUnique({
-          where: {
-            id: input.productId,
-          },
+  const cart =
+    await runSerializableTransaction(
+      async (transaction) => {
+        const product =
+          await transaction.product.findUnique(
+            {
+              where: {
+                id: input.productId,
+              },
 
-          include: {
-            inventory: true,
-          },
-        });
+              include: {
+                inventory: true,
+              },
+            },
+          );
 
-      if (!product || !product.isActive) {
-        throw new CartProductNotFoundError();
-      }
+        if (
+          !product ||
+          !product.isActive
+        ) {
+          throw new CartProductNotFoundError();
+        }
 
-      const availableStock = Math.max(
-        0,
-        (product.inventory?.quantity ?? 0) -
-          (product.inventory
-            ?.reservedQuantity ?? 0),
-      );
+        const availableStock =
+          Math.max(
+            0,
 
-      const selectedColor =
-        resolveProductSelection(
-          input.selectedColor,
-          product.colors,
-          "color",
-        );
+            (product.inventory
+              ?.quantity ?? 0) -
+              (product.inventory
+                ?.reservedQuantity ??
+                0),
+          );
 
-      const selectedSize =
-        resolveProductSelection(
-          input.selectedSize,
-          product.sizes,
-          "size",
-        );
+        const selectedColor =
+          resolveProductSelection(
+            input.selectedColor,
+            product.colors,
+            "color",
+          );
 
-      const userCart =
-        await transaction.cart.upsert({
-          where: {
-            userId,
-          },
+        const selectedSize =
+          resolveProductSelection(
+            input.selectedSize,
+            product.sizes,
+            "size",
+          );
 
-          update: {},
-
-          create: {
-            userId,
-          },
-
-          select: {
-            id: true,
-          },
-        });
-
-      const existingItem =
-        await transaction.cartItem.findFirst({
-          where: {
-            cartId: userCart.id,
-            productId: product.id,
+        const variantKey =
+          createCartVariantKey(
             selectedColor,
             selectedSize,
-          },
-        });
+          );
 
-      const nextQuantity =
-        (existingItem?.quantity ?? 0) +
-        input.quantity;
+        const userCart =
+          await transaction.cart.upsert(
+            {
+              where: {
+                userId,
+              },
 
-      if (
-        availableStock === 0 ||
-        nextQuantity > availableStock
-      ) {
-        throw new CartStockError(
-          availableStock,
-        );
-      }
+              update: {},
 
-      if (existingItem) {
-        await transaction.cartItem.update({
-          where: {
-            id: existingItem.id,
-          },
+              create: {
+                userId,
+              },
 
-          data: {
-            quantity: nextQuantity,
-          },
-        });
-      } else {
-        await transaction.cartItem.create({
-          data: {
-            cartId: userCart.id,
-            productId: product.id,
-            quantity: input.quantity,
-            selectedColor,
-            selectedSize,
-          },
-        });
-      }
+              select: {
+                id: true,
+              },
+            },
+          );
 
-      const updatedCart =
-        await transaction.cart.findUnique({
-          where: {
-            id: userCart.id,
-          },
+        const currentProductQuantity =
+          await getCartProductQuantity(
+            transaction,
+            userCart.id,
+            product.id,
+          );
 
-          include: cartInclude,
-        });
+        const nextTotalProductQuantity =
+          currentProductQuantity +
+          input.quantity;
 
-      if (!updatedCart) {
-        throw new Error(
-          "Cart could not be loaded after adding the item.",
-        );
-      }
+        if (
+          availableStock === 0 ||
+          nextTotalProductQuantity >
+            availableStock
+        ) {
+          throw new CartStockError(
+            availableStock,
+          );
+        }
 
-      return updatedCart;
-    },
-  );
+        const existingItem =
+          await transaction.cartItem.findUnique(
+            {
+              where: {
+                cartId_productId_variantKey:
+                  {
+                    cartId:
+                      userCart.id,
+
+                    productId:
+                      product.id,
+
+                    variantKey,
+                  },
+              },
+            },
+          );
+
+        const nextVariantQuantity =
+          (existingItem?.quantity ??
+            0) + input.quantity;
+
+        if (existingItem) {
+          await transaction.cartItem.update(
+            {
+              where: {
+                id: existingItem.id,
+              },
+
+              data: {
+                quantity:
+                  nextVariantQuantity,
+              },
+            },
+          );
+        } else {
+          await transaction.cartItem.create(
+            {
+              data: {
+                cartId:
+                  userCart.id,
+
+                productId:
+                  product.id,
+
+                quantity:
+                  input.quantity,
+
+                selectedColor,
+                selectedSize,
+                variantKey,
+              },
+            },
+          );
+        }
+
+        const updatedCart =
+          await transaction.cart.findUnique(
+            {
+              where: {
+                id: userCart.id,
+              },
+
+              include:
+                cartInclude,
+            },
+          );
+
+        if (!updatedCart) {
+          throw new Error(
+            "Cart could not be loaded after adding the item.",
+          );
+        }
+
+        return updatedCart;
+      },
+    );
 
   return serializeCart(cart);
 }
@@ -369,118 +505,212 @@ export async function updateCartItem(
   itemId: string,
   input: UpdateCartItemInput,
 ): Promise<Cart> {
-  const cart = await prisma.$transaction(
-    async (transaction) => {
-      const existingItem =
-        await transaction.cartItem.findFirst({
-          where: {
-            id: itemId,
+  const cart =
+    await runSerializableTransaction(
+      async (transaction) => {
+        const existingItem =
+          await transaction.cartItem.findFirst(
+            {
+              where: {
+                id: itemId,
 
-            cart: {
-              userId,
-            },
-          },
+                cart: {
+                  userId,
+                },
+              },
 
-          include: {
-            product: {
               include: {
-                inventory: true,
+                product: {
+                  include: {
+                    inventory: true,
+                  },
+                },
+
+                cart: {
+                  select: {
+                    id: true,
+                  },
+                },
               },
             },
+          );
 
-            cart: {
-              select: {
-                id: true,
+        if (!existingItem) {
+          throw new CartItemNotFoundError();
+        }
+
+        if (
+          !existingItem.product
+            .isActive
+        ) {
+          throw new CartProductNotFoundError();
+        }
+
+        const availableStock =
+          Math.max(
+            0,
+
+            (existingItem.product
+              .inventory
+              ?.quantity ?? 0) -
+              (existingItem.product
+                .inventory
+                ?.reservedQuantity ??
+                0),
+          );
+
+        const nextQuantity =
+          input.quantity ??
+          existingItem.quantity;
+
+        const otherVariantQuantity =
+          await getCartProductQuantity(
+            transaction,
+
+            existingItem.cart.id,
+
+            existingItem.productId,
+
+            existingItem.id,
+          );
+
+        const nextTotalProductQuantity =
+          otherVariantQuantity +
+          nextQuantity;
+
+        if (
+          availableStock === 0 ||
+          nextTotalProductQuantity >
+            availableStock
+        ) {
+          throw new CartStockError(
+            availableStock,
+          );
+        }
+
+        const selectedColor =
+          Object.prototype.hasOwnProperty.call(
+            input,
+            "selectedColor",
+          )
+            ? resolveProductSelection(
+                input.selectedColor,
+
+                existingItem.product
+                  .colors,
+
+                "color",
+              )
+            : existingItem.selectedColor;
+
+        const selectedSize =
+          Object.prototype.hasOwnProperty.call(
+            input,
+            "selectedSize",
+          )
+            ? resolveProductSelection(
+                input.selectedSize,
+
+                existingItem.product
+                  .sizes,
+
+                "size",
+              )
+            : existingItem.selectedSize;
+
+        const variantKey =
+          createCartVariantKey(
+            selectedColor,
+            selectedSize,
+          );
+
+        const matchingVariant =
+          await transaction.cartItem.findUnique(
+            {
+              where: {
+                cartId_productId_variantKey:
+                  {
+                    cartId:
+                      existingItem.cart.id,
+
+                    productId:
+                      existingItem.productId,
+
+                    variantKey,
+                  },
               },
             },
-          },
-        });
+          );
 
-      if (!existingItem) {
-        throw new CartItemNotFoundError();
-      }
+        if (
+          matchingVariant &&
+          matchingVariant.id !==
+            existingItem.id
+        ) {
+          await transaction.cartItem.update(
+            {
+              where: {
+                id:
+                  matchingVariant.id,
+              },
 
-      if (
-        !existingItem.product.isActive
-      ) {
-        throw new CartProductNotFoundError();
-      }
+              data: {
+                quantity: {
+                  increment:
+                    nextQuantity,
+                },
+              },
+            },
+          );
 
-      const availableStock = Math.max(
-        0,
-        (existingItem.product.inventory
-          ?.quantity ?? 0) -
-          (existingItem.product.inventory
-            ?.reservedQuantity ?? 0),
-      );
+          await transaction.cartItem.delete(
+            {
+              where: {
+                id: existingItem.id,
+              },
+            },
+          );
+        } else {
+          await transaction.cartItem.update(
+            {
+              where: {
+                id: existingItem.id,
+              },
 
-      const nextQuantity =
-        input.quantity ??
-        existingItem.quantity;
+              data: {
+                quantity:
+                  nextQuantity,
 
-      if (
-        availableStock === 0 ||
-        nextQuantity > availableStock
-      ) {
-        throw new CartStockError(
-          availableStock,
-        );
-      }
+                selectedColor,
+                selectedSize,
+                variantKey,
+              },
+            },
+          );
+        }
 
-      const selectedColor =
-        Object.prototype.hasOwnProperty.call(
-          input,
-          "selectedColor",
-        )
-          ? resolveProductSelection(
-              input.selectedColor,
-              existingItem.product.colors,
-              "color",
-            )
-          : existingItem.selectedColor;
+        const updatedCart =
+          await transaction.cart.findUnique(
+            {
+              where: {
+                id:
+                  existingItem.cart.id,
+              },
 
-      const selectedSize =
-        Object.prototype.hasOwnProperty.call(
-          input,
-          "selectedSize",
-        )
-          ? resolveProductSelection(
-              input.selectedSize,
-              existingItem.product.sizes,
-              "size",
-            )
-          : existingItem.selectedSize;
+              include:
+                cartInclude,
+            },
+          );
 
-      await transaction.cartItem.update({
-        where: {
-          id: existingItem.id,
-        },
+        if (!updatedCart) {
+          throw new Error(
+            "Cart could not be loaded after updating the item.",
+          );
+        }
 
-        data: {
-          quantity: nextQuantity,
-          selectedColor,
-          selectedSize,
-        },
-      });
-
-      const updatedCart =
-        await transaction.cart.findUnique({
-          where: {
-            id: existingItem.cart.id,
-          },
-
-          include: cartInclude,
-        });
-
-      if (!updatedCart) {
-        throw new Error(
-          "Cart could not be loaded after updating the item.",
-        );
-      }
-
-      return updatedCart;
-    },
-  );
+        return updatedCart;
+      },
+    );
 
   return serializeCart(cart);
 }
@@ -489,55 +719,65 @@ export async function removeCartItem(
   userId: string,
   itemId: string,
 ): Promise<Cart> {
-  const cart = await prisma.$transaction(
-    async (transaction) => {
-      const existingItem =
-        await transaction.cartItem.findFirst({
-          where: {
-            id: itemId,
+  const cart =
+    await prisma.$transaction(
+      async (transaction) => {
+        const existingItem =
+          await transaction.cartItem.findFirst(
+            {
+              where: {
+                id: itemId,
 
-            cart: {
-              userId,
-            },
-          },
+                cart: {
+                  userId,
+                },
+              },
 
-          include: {
-            cart: {
-              select: {
-                id: true,
+              include: {
+                cart: {
+                  select: {
+                    id: true,
+                  },
+                },
               },
             },
+          );
+
+        if (!existingItem) {
+          throw new CartItemNotFoundError();
+        }
+
+        await transaction.cartItem.delete(
+          {
+            where: {
+              id:
+                existingItem.id,
+            },
           },
-        });
-
-      if (!existingItem) {
-        throw new CartItemNotFoundError();
-      }
-
-      await transaction.cartItem.delete({
-        where: {
-          id: existingItem.id,
-        },
-      });
-
-      const updatedCart =
-        await transaction.cart.findUnique({
-          where: {
-            id: existingItem.cart.id,
-          },
-
-          include: cartInclude,
-        });
-
-      if (!updatedCart) {
-        throw new Error(
-          "Cart could not be loaded after removing the item.",
         );
-      }
 
-      return updatedCart;
-    },
-  );
+        const updatedCart =
+          await transaction.cart.findUnique(
+            {
+              where: {
+                id:
+                  existingItem.cart.id,
+              },
+
+              include:
+                cartInclude,
+            },
+          );
+
+        if (!updatedCart) {
+          throw new Error(
+            "Cart could not be loaded after removing the item.",
+          );
+        }
+
+        return updatedCart;
+      },
+    );
 
   return serializeCart(cart);
 }

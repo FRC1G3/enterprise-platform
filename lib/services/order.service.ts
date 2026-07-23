@@ -8,6 +8,7 @@ import {
 } from "@/generated/prisma/client";
 
 import prisma from "@/lib/db/prisma";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 
 import type { CreateOrderInput } from "@/schemas/order.schema";
 
@@ -27,6 +28,11 @@ const orderInclude = {
 type OrderRecord = Prisma.OrderGetPayload<{
   include: typeof orderInclude;
 }>;
+
+export interface CreateOrderResult {
+  order: Order;
+  replayed: boolean;
+}
 
 const paymentMethodToDatabase: Record<
   PaymentMethod,
@@ -153,11 +159,30 @@ function serializeOrder(
 
 export async function createOrder(
   userId: string,
+  idempotencyKey: string,
   input: CreateOrderInput,
-): Promise<Order> {
-  const order =
-    await prisma.$transaction(
+): Promise<CreateOrderResult> {
+  try {
+    const result =
+      await runSerializableTransaction(
       async (transaction) => {
+        const existingOrder =
+          await transaction.order.findFirst({
+            where: {
+              userId,
+              idempotencyKey,
+            },
+
+            include: orderInclude,
+          });
+
+        if (existingOrder) {
+          return {
+            order: existingOrder,
+            replayed: true,
+          };
+        }
+
         const cart =
           await transaction.cart.findUnique({
             where: {
@@ -324,6 +349,7 @@ export async function createOrder(
                 generateOrderNumber(),
 
               userId,
+              idempotencyKey,
 
               customerName:
                 input.customerName,
@@ -458,11 +484,50 @@ export async function createOrder(
           },
         });
 
-        return createdOrder;
+        return {
+          order: createdOrder,
+          replayed: false,
+        };
       },
     );
 
-  return serializeOrder(order);
+    return {
+      order:
+        serializeOrder(result.order),
+
+      replayed: result.replayed,
+    };
+  } catch (error) {
+    const isUniqueConflict =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002";
+
+    if (!isUniqueConflict) {
+      throw error;
+    }
+
+    const existingOrder =
+      await prisma.order.findFirst({
+        where: {
+          userId,
+          idempotencyKey,
+        },
+
+        include: orderInclude,
+      });
+
+    if (!existingOrder) {
+      throw error;
+    }
+
+    return {
+      order:
+        serializeOrder(existingOrder),
+      replayed: true,
+    };
+  }
 }
 
 export async function listOrdersForUser(

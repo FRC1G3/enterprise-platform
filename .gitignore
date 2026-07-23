@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 # generated Prisma client
 /generated/prisma
+cart-debug.txt
+*-debug.txt
+*-auth.txt
+session-test.txt

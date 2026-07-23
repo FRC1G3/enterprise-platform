@@ -41,7 +41,7 @@ Customers can:
 - Create orders
 - View order history
 - View individual order details
-- Manage profile information
+- View account details and saved customer information
 - Log out securely
 
 ### Administration
@@ -226,6 +226,7 @@ Cart items store:
 - Quantity
 - Selected color
 - Selected size
+- A deterministic variant key
 
 Totals are calculated by the server and include:
 
@@ -234,6 +235,8 @@ Totals are calculated by the server and include:
 - Shipping
 - Discount
 - Total
+
+Exact variants are unique per cart at the database level. Cart add and update operations run in Serializable transactions with up to three retries for PostgreSQL serialization conflicts. Stock validation sums every size and color for the product, while different variants remain separate cart lines. Changing a line to an existing exact variant merges the quantities safely.
 
 ### Order and OrderItem
 
@@ -436,6 +439,8 @@ If any operation fails, the complete transaction is rolled back.
 
 Order totals are never trusted from the client.
 
+Checkout requests require a UUID `Idempotency-Key` header. The browser keeps one key for the current checkout intent, and the database uniquely scopes it to the authenticated user. A replay returns the existing order without decrementing inventory, clearing the cart, or writing the order activity twice. New orders return `201`; replays return `200` with `Idempotency-Replayed: true`.
+
 ## Order Cancellation
 
 When an administrator cancels an order:
@@ -445,6 +450,8 @@ When an administrator cancels an order:
 - The operation is written to the activity log
 - A cancelled order cannot be reopened
 - A delivered order cannot be cancelled
+
+Cancellation first performs an atomic expected-state transition inside a Serializable transaction. Only the transaction that changes the order to `CANCELLED` restores inventory and writes the successful audit record. Order statuses follow a forward-only graph: pending orders may be confirmed, processed, or cancelled; confirmed orders may be processed or cancelled; processing orders may be shipped or cancelled; shipped orders may be delivered; delivered and cancelled orders are terminal.
 
 ## Data Fetching and Caching
 
@@ -624,6 +631,8 @@ Never commit the real `.env` file.
 
 Use `.env.example` as the public template.
 
+The `JWT_SECRET` value in `.env.example` is only a placeholder. Replace it with a real secret containing at least 32 characters before running the application.
+
 ## Local Installation
 
 ### 1. Install dependencies
@@ -663,6 +672,8 @@ For an existing production build:
 ```bash
 npx prisma migrate deploy
 ```
+
+Migration `20260723090000_concurrency_and_idempotency_protection` backfills and deduplicates cart variant identities without losing quantities, adds checkout idempotency, adds numeric PostgreSQL CHECK constraints, and adds stable-ordering indexes. Existing data should be checked before deployment; `scripts/preflight-concurrency-migration.mjs` performs the non-destructive numeric preflight.
 
 ### 6. Seed development data
 

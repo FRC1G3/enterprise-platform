@@ -12,6 +12,8 @@ import {
   RATE_LIMIT_POLICIES,
 } from "@/lib/security/rate-limit";
 
+import { createAuditLogSafely } from "@/lib/services/audit.service";
+
 import {
   createOrder,
   EmptyCartError,
@@ -19,7 +21,10 @@ import {
   OrderStockError,
 } from "@/lib/services/order.service";
 
-import { createOrderSchema } from "@/schemas/order.schema";
+import {
+  createOrderSchema,
+  idempotencyKeySchema,
+} from "@/schemas/order.schema";
 
 export async function GET() {
   const authorization =
@@ -76,6 +81,22 @@ export async function POST(
     );
 
   if (!rateLimit.allowed) {
+    await createAuditLogSafely({
+      request,
+      userId:
+        authorization.user.id,
+      action:
+        "CREATE_ORDER_RATE_LIMITED",
+      entity: "ORDER",
+      description:
+        "Order creation was rate limited.",
+      status: "FAILED",
+      metadata: {
+        retryAfterSeconds:
+          rateLimit.retryAfterSeconds,
+      },
+    });
+
     return createRateLimitResponse(
       rateLimit,
     );
@@ -83,6 +104,29 @@ export async function POST(
 
   const rateLimitHeaders =
     getRateLimitHeaders(rateLimit);
+
+  const idempotencyKeyResult =
+    idempotencyKeySchema.safeParse(
+      request.headers.get(
+        "Idempotency-Key",
+      ),
+    );
+
+  if (!idempotencyKeyResult.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "A valid Idempotency-Key header is required.",
+        errors:
+          idempotencyKeyResult.error.flatten(),
+      },
+      {
+        status: 400,
+        headers: rateLimitHeaders,
+      },
+    );
+  }
 
   let body: unknown;
 
@@ -123,22 +167,29 @@ export async function POST(
   }
 
   try {
-    const order = await createOrder(
+    const result = await createOrder(
       authorization.user.id,
+      idempotencyKeyResult.data,
       bodyResult.data,
     );
 
     return NextResponse.json(
       {
         success: true,
-        data: order,
+        data: result.order,
 
-        message:
-          "Order placed successfully.",
+        message: result.replayed
+          ? "Existing order returned for this checkout."
+          : "Order placed successfully.",
       },
       {
-        status: 201,
-        headers: rateLimitHeaders,
+        status:
+          result.replayed ? 200 : 201,
+        headers: {
+          ...rateLimitHeaders,
+          "Idempotency-Replayed":
+            String(result.replayed),
+        },
       },
     );
   } catch (error) {

@@ -117,7 +117,7 @@ export default async function HomePage() {
                 Up to 30% off
               </h2>
               <p>Selected pieces from the seasonal edit. While stock lasts.</p>
-              <Link className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-[17px] py-2.5 font-bold text-slate-900 transition hover:-translate-y-px hover:bg-slate-50" href="/products">
+              <Link className="inline-flex min-h-[42px] items-center justify-center text-black-600 gap-2 rounded-lg border border-slate-300 bg-indigo px-[17px] py-2.5 font-bold  transition hover:-translate-y-px " href="/products">
                 Shop the offer
               </Link>
             </div>
@@ -176,7 +176,7 @@ export default async function HomePage() {
                 placeholder="Your email address"
                 required
               />
-              <button className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-transparent bg-indigo-800 px-[17px] py-2.5 font-bold text-white transition hover:-translate-y-px hover:bg-indigo-900" type="submit">
+              <button className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-transparent bg-indigo-800 px-[17px] py-2.5 font-bold text-white transition hover:-translate-y-px hover:bg-indigo-900" type="button">
                 Join us
               </button>
             </form>
@@ -186,4 +186,3 @@ export default async function HomePage() {
     </>
   );
 }
-

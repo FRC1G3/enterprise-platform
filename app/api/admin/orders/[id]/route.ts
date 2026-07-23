@@ -6,6 +6,15 @@ import {
 import { requireAdminApi } from "@/lib/auth/guards";
 
 import {
+  createRateLimitResponse,
+  consumeRequestRateLimit,
+  getRateLimitHeaders,
+  RATE_LIMIT_POLICIES,
+} from "@/lib/security/rate-limit";
+
+import { createAuditLogSafely } from "@/lib/services/audit.service";
+
+import {
   AdminOrderNotFoundError,
   AdminOrderTransitionError,
   getAdminOrder,
@@ -86,6 +95,38 @@ export async function PATCH(
     return authorization.response;
   }
 
+  const rateLimit =
+    await consumeRequestRateLimit(
+      request,
+      RATE_LIMIT_POLICIES.adminMutation,
+      authorization.user.id,
+    );
+
+  if (!rateLimit.allowed) {
+    await createAuditLogSafely({
+      request,
+      userId:
+        authorization.user.id,
+      action:
+        "UPDATE_ORDER_RATE_LIMITED",
+      entity: "ORDER",
+      description:
+        "An administrative order update was rate limited.",
+      status: "FAILED",
+      metadata: {
+        retryAfterSeconds:
+          rateLimit.retryAfterSeconds,
+      },
+    });
+
+    return createRateLimitResponse(
+      rateLimit,
+    );
+  }
+
+  const rateLimitHeaders =
+    getRateLimitHeaders(rateLimit);
+
   const { id } = await context.params;
 
   let body: unknown;
@@ -101,6 +142,7 @@ export async function PATCH(
       },
       {
         status: 400,
+        headers: rateLimitHeaders,
       },
     );
   }
@@ -122,6 +164,7 @@ export async function PATCH(
       },
       {
         status: 400,
+        headers: rateLimitHeaders,
       },
     );
   }
@@ -134,12 +177,17 @@ export async function PATCH(
         bodyResult.data,
       );
 
-    return NextResponse.json({
-      success: true,
-      data: order,
-      message:
-        "Order updated successfully.",
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: order,
+        message:
+          "Order updated successfully.",
+      },
+      {
+        headers: rateLimitHeaders,
+      },
+    );
   } catch (error) {
     if (
       error instanceof
@@ -152,6 +200,7 @@ export async function PATCH(
         },
         {
           status: 404,
+          headers: rateLimitHeaders,
         },
       );
     }
@@ -167,6 +216,7 @@ export async function PATCH(
         },
         {
           status: 409,
+          headers: rateLimitHeaders,
         },
       );
     }
@@ -184,6 +234,7 @@ export async function PATCH(
       },
       {
         status: 500,
+        headers: rateLimitHeaders,
       },
     );
   }
