@@ -46,3 +46,6 @@ cart-debug.txt
 *-debug.txt
 *-auth.txt
 session-test.txt
+
+.vercel
+.env*
