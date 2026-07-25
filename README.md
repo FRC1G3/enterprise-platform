@@ -959,3 +959,5 @@ npm audit --audit-level=high
 ```
 
 See `DEPLOYMENT-INSIGHTS.md` for performance budgets, migration trade-offs, privacy, monitoring, Docker, and remaining limitations.
+
+deploy link- https://enterprise-platform-pi.vercel.app
