@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
 export default function ErrorPage({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -16,7 +15,7 @@ export default function ErrorPage({
         <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">Something went wrong</span>
         <h1>We hit an unexpected snag.</h1>
         <p className="leading-7 text-slate-500">
-          {error.message || "Please try again in a moment."}
+          Please try again in a moment. If the problem continues, return home and try later.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Button onClick={reset}>Try again</Button>

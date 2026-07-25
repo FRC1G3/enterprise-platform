@@ -8,6 +8,7 @@ import type {
   UserRole,
   VerifiedAuthSession,
 } from "@/types/auth";
+import { getServerEnvironment } from "@/lib/env/server";
 
 const JWT_ISSUER =
   "nova-enterprise-platform";
@@ -20,22 +21,8 @@ type TokenLifetime =
   | "7d";
 
 function getJwtSecret(): Uint8Array {
-  const secret =
-    process.env.JWT_SECRET;
-
-  if (
-    !secret ||
-    secret ===
-      "replace-with-a-secure-secret" ||
-    secret.length < 32
-  ) {
-    throw new Error(
-      "JWT_SECRET must be defined and contain at least 32 characters.",
-    );
-  }
-
   return new TextEncoder().encode(
-    secret,
+    getServerEnvironment().JWT_SECRET,
   );
 }
 

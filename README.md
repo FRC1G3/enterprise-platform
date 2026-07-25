@@ -880,3 +880,82 @@ Nova Store demonstrates how an e-commerce application can combine customer workf
 The platform includes secure authentication, protected APIs, reliable transactions, server-side validation, persistent carts, order and inventory consistency, optimistic interfaces, audit history, analytics, rate limiting, CORS protection, session refresh, and role-based administration.
 
 The project is designed to show not only that a feature works, but also how it remains secure, traceable, and consistent when multiple backend operations interact.
+
+---
+
+## Production Deployment
+
+The submission package is named `enterprise-deployment-platform`. Vercel is the primary Next.js runtime, managed PostgreSQL stores commerce data, Vercel Git integration creates Preview and Production deployments, and GitHub Actions validates changes.
+
+**Deployment URL:** `https://your-vercel-project.vercel.app`
+
+### Environment Variables
+
+| Variable | Required | Scope | Purpose |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | Yes | Server only | PostgreSQL URL |
+| `JWT_SECRET` | Yes | Server only | Signing secret of at least 32 characters |
+| `CORS_ALLOWED_ORIGINS` | No | Server only | Comma-separated extra API origins |
+| `NODE_ENV` | Runtime | Server only | Development, test, or production |
+| `VERCEL_ENV` | Vercel | Server only | Development, preview, or production |
+
+Use separate values for every Vercel environment. Never use `NEXT_PUBLIC_` for credentials.
+
+### Local Setup
+
+```bash
+npm install
+copy .env.example .env
+npx prisma migrate deploy
+npm run dev
+```
+
+Use `cp` instead of `copy` on macOS/Linux, then replace safe placeholders.
+
+### CI/CD and Vercel Steps
+
+CI starts disposable PostgreSQL, installs with `npm ci`, generates Prisma Client, applies migrations, lints, type-checks, builds, tests concurrency, and audits high-severity production dependencies. CI does not deploy. Pull requests receive Vercel Preview Deployments; `main` receives Production.
+
+1. Import the GitHub repository into Vercel with the Next.js preset.
+2. Configure Development, Preview, and Production variables separately.
+3. Set the Build Command to `npm run vercel-build` if it is not detected.
+4. Deploy and verify `/api/health`, authentication, catalog, cart, checkout, and admin access.
+
+The build uses `prisma generate`, `prisma migrate deploy`, and `next build`. Never use `migrate dev` or `db push` in Production.
+
+### Safe Manual Seed
+
+> **Warning:** Confirm `DATABASE_URL` targets the intended disposable demo database. The seed updates demo credentials, products, and inventory.
+
+```bash
+npm run db:seed
+```
+
+Seeding is manual and never runs during deployment.
+
+### Health, Monitoring, and Rollback
+
+`GET /api/health` checks PostgreSQL and returns `200`/`503`, status, and timestamp with `Cache-Control: no-store`. Web Analytics provides page traffic, Speed Insights provides Core Web Vitals, and Vercel runtime logs support debugging. Sensitive commerce data is not intentionally sent as analytics events.
+
+To roll back, open Vercel Deployments, select a successful deployment, and promote or redeploy it. Code rollback does not reverse migrations, so schema changes must be backward compatible.
+
+### Security and Docker
+
+Vercel provides HTTPS. The application preserves secure HTTP-only cookies, RBAC, origin controls, cross-site mutation protection, private APIs, HSTS, browser security headers, server-only validation, Dependabot, and dependency auditing.
+
+The optional multi-stage Docker image uses standalone output and a non-root user without copying `.env`. It expects BuildKit secrets named `database_url` and `jwt_secret` during `docker build`; secrets are not stored in image layers. Run `npx prisma migrate deploy` as a separate release step before starting a new container.
+
+### Final Verification
+
+```bash
+npm run postinstall
+npm run lint
+npm run typecheck
+npm run build
+npx prisma validate
+npx tsc --noEmit
+npm run verify:concurrency
+npm audit --audit-level=high
+```
+
+See `DEPLOYMENT-INSIGHTS.md` for performance budgets, migration trade-offs, privacy, monitoring, Docker, and remaining limitations.
