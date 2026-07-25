@@ -22,41 +22,43 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="grid min-h-[650px] overflow-hidden bg-[#f1f3f6] md:grid-cols-2">
-        <div className="flex flex-col justify-center px-8 py-[72px] md:pr-[7vw] lg:pl-[max(32px,calc((100vw-1180px)/2))]">
-          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">New season · 2026</span>
-          <h1 className="my-6 text-[clamp(3rem,6vw,5.8rem)] leading-[0.93] tracking-[-0.065em]">
-            Quiet confidence, made wearable.
-          </h1>
-          <p>
-            Discover modern essentials designed with purpose. Clean silhouettes,
-            considered details and lasting quality for every day.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-lg border border-transparent bg-indigo-800 px-[22px] py-[13px] font-bold text-white transition hover:-translate-y-px hover:bg-indigo-900" href="/products">
-              Shop collection →
-            </Link>
-            <Link
-              className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-[22px] py-[13px] font-bold text-slate-900 transition hover:-translate-y-px hover:bg-slate-50"
-              href="/products?sort=featured"
-            >
-              Explore new arrivals
-            </Link>
+      <section className="overflow-hidden bg-[#f1f3f6]">
+        <div className="mx-auto grid w-full max-w-[1440px] md:min-h-[620px] md:grid-cols-[minmax(0,48%)_minmax(0,52%)] lg:min-h-[650px]">
+          <div className="flex min-w-0 flex-col justify-center px-8 py-16 md:px-[clamp(2rem,4vw,4.5rem)] md:py-16 xl:py-[72px]">
+            <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-indigo-800">New season · 2026</span>
+            <h1 className="my-6 text-[clamp(3rem,11vw,4.25rem)] leading-[0.93] tracking-[-0.065em] md:text-[clamp(3.5rem,4.5vw,4.75rem)]">
+              Quiet confidence, made wearable.
+            </h1>
+            <p className="max-w-xl leading-7">
+              Discover modern essentials designed with purpose. Clean silhouettes,
+              considered details and lasting quality for every day.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-lg border border-transparent bg-indigo-800 px-[22px] py-[13px] font-bold text-white transition hover:-translate-y-px hover:bg-indigo-900" href="/products">
+                Shop collection →
+              </Link>
+              <Link
+                className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-[22px] py-[13px] font-bold text-slate-900 transition hover:-translate-y-px hover:bg-slate-50"
+                href="/products?sort=featured"
+              >
+                Explore new arrivals
+              </Link>
+            </div>
           </div>
-        </div>
 
-        <div className="relative min-h-[540px]">
-          <Image
-            className="object-cover"
-            src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=90"
-            alt="Nova Store seasonal collection"
-            fill
-            priority
-            sizes="(max-width:768px) 100vw, 50vw"
-          />
-          <div className="absolute bottom-6 left-6 rounded-[10px] bg-white/90 px-5 py-4">
-            <strong>The Modern Edit</strong>
-            <div className="leading-7 text-slate-500">12 timeless new pieces</div>
+          <div className="relative min-h-[540px] md:min-h-0">
+            <Image
+              className="object-cover object-center"
+              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=90"
+              alt="Nova Store seasonal collection"
+              fill
+              priority
+              sizes="(max-width: 767px) 100vw, (max-width: 1440px) 52vw, 749px"
+            />
+            <div className="absolute bottom-6 left-6 rounded-[10px] bg-white/90 px-5 py-4">
+              <strong>The Modern Edit</strong>
+              <div className="leading-7 text-slate-500">12 timeless new pieces</div>
+            </div>
           </div>
         </div>
       </section>
